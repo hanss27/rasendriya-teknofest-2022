@@ -150,13 +150,8 @@ def dropzone_detect():
             cX = largest_circle_center[0] - width/2
             cY = height/2 - largest_circle_center[1]
         else:
-<<<<<<< HEAD
             cX = float("NaN")
             cY = float("NaN")
-=======
-            cX = 3000
-            cY = 3000
->>>>>>> b1ec7fec8e7b577cb23b8266008eaabdca61e7b1
         
         cNorthAngle = math.degrees(math.atan2(cX, cY))
         cNormalAngle = math.degrees(math.atan2(cY, cX))

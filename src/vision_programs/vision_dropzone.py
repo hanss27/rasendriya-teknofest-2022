@@ -1,9 +1,5 @@
 import rospy
-<<<<<<< HEAD
 from rasendriya.srv import Dropzone 
-=======
-from rasendriya.msg import Dropzone 
->>>>>>> b1ec7fec8e7b577cb23b8266008eaabdca61e7b1
 import cv2
 import numpy as np
 import time
@@ -11,7 +7,6 @@ import math
 import imutils
 import argparse
 from imutils.video import VideoStream
-<<<<<<< HEAD
 from std_srvs.srv import SetBool, SetBoolResponse
 
 vision_flag = False
@@ -27,15 +22,6 @@ def vision_flag_req(req):
     global vision_flag
     vision_flag = req.data
     return SetBoolResponse(True)
-=======
-from std_msgs.msg import Bool
-
-vision_flag = False
-
-def vision_flag_callback(vis_flag):
-    global vision_flag
-    vision_flag = vis_flag.data
->>>>>>> b1ec7fec8e7b577cb23b8266008eaabdca61e7b1
 
 def dropzone_detect():
     # camera resolution width and height parameters
@@ -54,7 +40,6 @@ def dropzone_detect():
 
     # initialize ros node
     rospy.init_node('vision_dropzone')
-<<<<<<< HEAD
     rospy.wait_for_service('/rasendriya/dropzone')
 
     # initialize ros publisher
@@ -63,16 +48,6 @@ def dropzone_detect():
     # initialize ros subscriber
     # rospy.Subscriber("/rasendriya/vision_flag", SetBool, vision_flag_callback)
     rospy.Service('/rasendriya/vision_flag', SetBool, vision_flag_req)
-=======
-
-    # initialize ros publisher
-    vision_result_pub = rospy.Publisher('/rasendriya/dropzone', Dropzone, queue_size=5)
-    rate = rospy.Rate(25)
-    vision_result = Dropzone()
-    
-    # initialize ros subscriber
-    rospy.Subscriber("/rasendriya/vision_flag", Bool, vision_flag_callback)
->>>>>>> b1ec7fec8e7b577cb23b8266008eaabdca61e7b1
 
     # set lower and upper hsv threshold in red
     lower = np.array([170, 127, 117], dtype='uint8')
@@ -121,7 +96,6 @@ def dropzone_detect():
 
             # transform pixel coordinate system to screen coordinate system
             if largest_circle_center is not None:
-<<<<<<< HEAD
                 x = int(largest_circle_center[0] - width/2)
                 y = int(height/2 - largest_circle_center[1])
             else:
@@ -133,17 +107,6 @@ def dropzone_detect():
 
 
 
-=======
-                vision_result.x = int(largest_circle_center[0] - width/2)
-                vision_result.y = int(height/2 - largest_circle_center[1])
-            else:
-                vision_result.x = 3000
-                vision_result.y = 3000
-        
-            vision_result_pub.publish(vision_result)
-
-        rate.sleep()
->>>>>>> b1ec7fec8e7b577cb23b8266008eaabdca61e7b1
 
 if __name__ == "__main__":
     try:
