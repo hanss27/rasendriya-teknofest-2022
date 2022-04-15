@@ -11,7 +11,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+<<<<<<< HEAD
   std_srvs
+=======
+>>>>>>> b1ec7fec8e7b577cb23b8266008eaabdca61e7b1
   mavros
   message_generation
   roslaunch
@@ -56,6 +59,7 @@ roslaunch_add_file_check(launch)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
+<<<<<<< HEAD
 #add_message_files(FILES
 #	Dropzone.msg
 #)
@@ -64,6 +68,18 @@ roslaunch_add_file_check(launch)
 add_service_files(FILES
     Dropzone.srv
 )
+=======
+add_message_files(FILES
+	Dropzone.msg
+)
+
+## Generate services in the 'srv' folder
+# add_service_files(
+#   FILES
+#   Service1.srv
+#   Service2.srv
+# )
+>>>>>>> b1ec7fec8e7b577cb23b8266008eaabdca61e7b1
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -75,7 +91,10 @@ add_service_files(FILES
 ## Generate added messages and services with any dependencies listed here
 generate_messages(DEPENDENCIES
 	std_msgs
+<<<<<<< HEAD
     std_srvs
+=======
+>>>>>>> b1ec7fec8e7b577cb23b8266008eaabdca61e7b1
 )
 
 ################################################
@@ -110,7 +129,11 @@ generate_messages(DEPENDENCIES
 catkin_package(
 #    INCLUDE_DIRS include
 #    LIBRARIES rasendriya
+<<<<<<< HEAD
     CATKIN_DEPENDS roscpp rospy std_msgs std_srvs message_runtime
+=======
+    CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+>>>>>>> b1ec7fec8e7b577cb23b8266008eaabdca61e7b1
 #    DEPENDS system_lib
 )
 
@@ -159,6 +182,7 @@ add_executable(mission_control
 target_link_libraries(mission_control
     ${catkin_LIBRARIES})
 
+<<<<<<< HEAD
 #add_executable(test_servo
 #    src/testing/test_servo.cpp)
 #target_link_libraries(test_servo
@@ -168,6 +192,17 @@ target_link_libraries(mission_control
 #    src/testing/test_waypoint.cpp)
 #target_link_libraries(test_waypoint
 #    ${catkin_LIBRARIES})
+=======
+add_executable(test_servo
+    src/testing/test_servo.cpp)
+target_link_libraries(test_servo
+    ${catkin_LIBRARIES})
+
+add_executable(test_waypoint
+    src/testing/test_waypoint.cpp)
+target_link_libraries(test_waypoint
+    ${catkin_LIBRARIES})
+>>>>>>> b1ec7fec8e7b577cb23b8266008eaabdca61e7b1
 
 #############
 ## Install ##
