@@ -18,6 +18,8 @@
 #include "std_msgs/Bool.h"
 #include "std_msgs/Float64.h"
 
+#include "std_srvs/SetBool.h"
+
 #include <math.h>
 #include <bits/stdc++.h>
 
@@ -39,9 +41,11 @@ bool mission_flag;
 
 mavros_msgs::WaypointPush waypoint_push;
 
-void dropzone_target_callback(const rasendriya::Dropzone& dropzone_loc){
-	x_pixel = dropzone_loc.x;
-	y_pixel = dropzone_loc.y;
+bool dropzone_target_callback(rasendriya::Dropzone::Request& dropzone_req, rasendriya::Dropzone::Response& dropzone_res){
+	x_pixel = dropzone_req.x;
+	y_pixel = dropzone_req.y;
+	dropzone_res.status = true;
+	return true;
 }
 
 void gps_callback(const sensor_msgs::NavSatFix& gps_data){
@@ -60,10 +64,6 @@ void gps_hdg_callback(const std_msgs::Float64& gps_hdg_data){
 void vel_callback(const geometry_msgs::TwistStamped& vel_data){
 	vel_y = vel_data.twist.linear.y;
 	vel_z = vel_data.twist.linear.z;
-}
-
-void mission_flag_callback(const std_msgs::Bool& mis_flag){
-	mission_flag = mis_flag.data;
 }
 
 void waypoint_list_callback(const mavros_msgs::WaypointList& wplist) {
@@ -179,9 +179,9 @@ int main(int argc, char **argv) {
 
 	double tgt_latx, tgt_lony;
 
-	std_msgs::Bool vision_flag;
-
 	mavros_msgs::WaypointPull waypoint_pull;
+
+	std_srvs::SetBool vision_flag;
 
 	mavros_msgs::Waypoint wp;
 
@@ -191,19 +191,18 @@ int main(int argc, char **argv) {
 	ros::ServiceClient waypoint_push_client = nh.serviceClient<mavros_msgs::WaypointPush>("/mavros/mission/push");
 
 	ros::ServiceClient waypoint_pull_client = nh.serviceClient<mavros_msgs::WaypointPull>("/mavros/mission/pull");
+	
+	ros::ServiceClient vision_flag_client = nh.serviceClient<std_srvs::SetBool>("/rasendriya/vision_flag");
 
-	ros::Subscriber mission_flag_subscriber = nh.subscribe("/rasendriya/mission_flag", 1, mission_flag_callback);
+	ros::ServiceServer dropzone_service = nh.advertiseService("/rasendriya/dropzone", dropzone_target_callback);
 
 	ros::Subscriber waypoint_list_sub = nh.subscribe("/mavros/mission/waypoints", 1, waypoint_list_callback);
 
 	ros::Subscriber waypoint_reached_sub = nh.subscribe("/mavros/mission/reached", 1, waypoint_reached_callback);
-	ros::Subscriber dropzone_target_sub = nh.subscribe("/rasendriya/dropzone", 3, dropzone_target_callback);
 	ros::Subscriber gps_coordinate_sub= nh.subscribe("/mavros/global_position/global", 1, gps_callback);
 	ros::Subscriber alt_sub = nh.subscribe("/mavros/altitude", 1, alt_callback);
 	ros::Subscriber gps_hdg_sub = nh.subscribe("/mavros/global_position/compass_hdg", 1, gps_hdg_callback);
 	ros::Subscriber vel_sub = nh.subscribe("/mavros/global_position/gp_vel", 1, vel_callback);
-
-	ros::Publisher vision_flag_publisher = nh.advertise<std_msgs::Bool>("/rasendriya/vision_flag", 1, true);
 
 	ros::Rate rate(25);
 	
@@ -230,96 +229,83 @@ int main(int argc, char **argv) {
 		
 		ROS_INFO_ONCE("Mission program ready");
 		
-		if(mission_flag) {
-			ROS_INFO_ONCE("Mission program started");
-			// increase counter if wp3 reached
-			if(waypoint_reached == 1){
-				++mission_repeat_counter;
-			}
+		ROS_INFO_ONCE("Mission program started");
+		
+		// turn on vision node when wp3 has reached
+		if(waypoint_reached == 1 && mission_repeat_counter == 1){
+			vision_flag.request.data = true;
+			vision_flag_client.call(vision_flag);
+			ROS_INFO_ONCE("Vision program started");
+		}
+		else {
+			vision_flag.request.data = false;
+			vision_flag_client.call(vision_flag);
+			ROS_INFO_ONCE("Vision program stopped");
+		}
+
+		// dropzone confirmed
+		if((x_pixel != NAN) && (y_pixel != NAN)){
 			
-			// turn on vision node when wp3 has reached
-			if(waypoint_reached == 1 && mission_repeat_counter == 1){
-				vision_flag.data = true;
-				vision_flag_publisher.publish(vision_flag);
+			ROS_INFO_ONCE("DROPZONE TARGET ACQUIRED. PROCEED TO EXECUTE DROPPING SEQUENCE");
+
+			if(calc_mode % 2 == 0) {
+				ros::param::get("/rasendriya/drag_coefficient", drag_coeff);
+				dropping_offset = 0;
+				calc_projectile_distance(dropping_offset, dropping_altitude, drag_coeff);
 			}
 			else {
-				vision_flag.data = false;
-				vision_flag_publisher.publish(vision_flag);
-				ROS_INFO_ONCE("Vision program stopped");
+				ros::param::get("/rasendriya/dropping_offset", dropping_offset);
 			}
 
-			// dropzone found, confirm by wait for hit_point
-			if((x_pixel && y_pixel) != 3000){
-				++hit_count;
+			calc_drop_coord(tgt_latx, tgt_lony, dropping_offset, calc_mode);
+			
+			// send do jump command to WP 1 from WP 4 after dropzone has found as WP 5
+			wp.frame = mavros_msgs::Waypoint::FRAME_GLOBAL_REL_ALT;
+			wp.command = mavros_msgs::CommandCode::DO_JUMP;
+			wp.is_current = false;
+			wp.autocontinue = true;
+			wp.param1 = 1;
+			wp.param2 = 2;
+			insert_wp(4, wp);
+
+			// send plane attitude waypoint for dropping as WP 3 in WP 2
+			wp.frame = mavros_msgs::Waypoint::FRAME_GLOBAL_REL_ALT;
+			wp.command = mavros_msgs::CommandCode::NAV_WAYPOINT;
+			wp.is_current = false;
+			wp.autocontinue = true;
+			wp.param2 = 1;
+			wp.param3 = 0;
+			wp.x_lat = tgt_latx;
+			wp.y_long = tgt_lony;
+			wp.z_alt = dropping_altitude;
+			insert_wp(2, wp);
+
+			// send waypoint to drop front ball
+			servo_drop_wp(7, 3, wp);
+
+			if(waypoint_push_client.call(waypoint_push) && waypoint_pull_client.call(waypoint_pull)){
+				ROS_INFO("FIRST WAYPOINT NAVIGATION DROP SENT");
 			}
 			else {
-				--hit_count;
+				ROS_WARN("FAILED TO SEND FIRST WAYPOINT NAVIGATION DROP");
 			}
 
-			// dropzone confirmed
-			if(hit_count >= 3){
-				
-				ROS_INFO_ONCE("DROPZONE TARGET ACQUIRED. PROCEED TO EXECUTE DROPPING SEQUENCE");
+			hit_count = 0;
+		}
 
-				if(calc_mode % 2 == 0) {
-					ros::param::get("/rasendriya/drag_coefficient", drag_coeff);
-					dropping_offset = 0;
-					calc_projectile_distance(dropping_offset, dropping_altitude, drag_coeff);
-				}
-				else {
-					ros::param::get("/rasendriya/dropping_offset", dropping_offset);
-				}
+		// send drop back ball
+		if(mission_repeat_counter == 3){
+			erase_wp(3);
+			servo_drop_wp(8, 3, wp);
 
-				calc_drop_coord(tgt_latx, tgt_lony, dropping_offset, calc_mode);
-				
-				// send do jump command to WP 1 from WP 4 after dropzone has found as WP 5
-				wp.frame = mavros_msgs::Waypoint::FRAME_GLOBAL_REL_ALT;
-				wp.command = mavros_msgs::CommandCode::DO_JUMP;
-				wp.is_current = false;
-				wp.autocontinue = true;
-				wp.param1 = 1;
-				wp.param2 = 2;
-				insert_wp(4, wp);
-
-				// send plane attitude waypoint for dropping as WP 3 in WP 2
-				wp.frame = mavros_msgs::Waypoint::FRAME_GLOBAL_REL_ALT;
-				wp.command = mavros_msgs::CommandCode::NAV_WAYPOINT;
-				wp.is_current = false;
-				wp.autocontinue = true;
-				wp.param2 = 1;
-				wp.param3 = 0;
-				wp.x_lat = tgt_latx;
-				wp.y_long = tgt_lony;
-				wp.z_alt = dropping_altitude;
-				insert_wp(2, wp);
-
-				// send waypoint to drop front ball
-				servo_drop_wp(7, 3, wp);
-
-				if(waypoint_push_client.call(waypoint_push) && waypoint_pull_client.call(waypoint_pull)){
-					ROS_INFO("FIRST WAYPOINT NAVIGATION DROP SENT");
-				}
-				else {
-					ROS_WARN("FAILED TO SEND FIRST WAYPOINT NAVIGATION DROP");
-				}
-
-				hit_count = 0;
+			if(waypoint_push_client.call(waypoint_push) && waypoint_pull_client.call(waypoint_pull)){
+				ROS_INFO("SECOND WAYPOINT NAVIGATION DROP SENT");
+			}
+			else {
+				ROS_WARN("FAILED TO SEND SECOND WAYPOINT NAVIGATION DROP");
 			}
 
-			// send drop back ball
-			if(mission_repeat_counter == 3){
-				erase_wp(3);
-				servo_drop_wp(8, 3, wp);
-
-				if(waypoint_push_client.call(waypoint_push) && waypoint_pull_client.call(waypoint_pull)){
-					ROS_INFO("SECOND WAYPOINT NAVIGATION DROP SENT");
-				}
-				else {
-					ROS_WARN("FAILED TO SEND SECOND WAYPOINT NAVIGATION DROP");
-				}
-
-				mission_repeat_counter = 0;
-			}
+			mission_repeat_counter = 0;
 		}
 
 		ros::spinOnce();

@@ -1,5 +1,5 @@
 import rospy
-from rasendriya.msg import Dropzone 
+from rasendriya.srv import Dropzone 
 import cv2
 import numpy as np
 import time
@@ -7,13 +7,21 @@ import math
 import imutils
 import argparse
 from imutils.video import VideoStream
-from std_msgs.msg import Bool
+from std_srvs.srv import SetBool, SetBoolResponse
 
 vision_flag = False
 
-def vision_flag_callback(vis_flag):
+# Sending Dropzone Service
+def dropzone_service_client(x,y):
+    rospy.wait_for_service('/rasendriya/dropzone')
+    dropzone_service = rospy.ServiceProxy('/rasendriya/dropzone', Dropzone)
+    resp = dropzone_service(x,y)
+    return resp.status
+
+def vision_flag_req(req):
     global vision_flag
-    vision_flag = vis_flag.data
+    vision_flag = req.data
+    return SetBoolResponse(True)
 
 def dropzone_detect():
     # camera resolution width and height parameters
@@ -32,14 +40,14 @@ def dropzone_detect():
 
     # initialize ros node
     rospy.init_node('vision_dropzone')
+    rospy.wait_for_service('/rasendriya/dropzone')
 
     # initialize ros publisher
-    vision_result_pub = rospy.Publisher('/rasendriya/dropzone', Dropzone, queue_size=5)
     rate = rospy.Rate(25)
-    vision_result = Dropzone()
     
     # initialize ros subscriber
-    rospy.Subscriber("/rasendriya/vision_flag", Bool, vision_flag_callback)
+    # rospy.Subscriber("/rasendriya/vision_flag", SetBool, vision_flag_callback)
+    rospy.Service('/rasendriya/vision_flag', SetBool, vision_flag_req)
 
     # set lower and upper hsv threshold in red
     lower = np.array([170, 127, 117], dtype='uint8')
@@ -88,15 +96,17 @@ def dropzone_detect():
 
             # transform pixel coordinate system to screen coordinate system
             if largest_circle_center is not None:
-                vision_result.x = int(largest_circle_center[0] - width/2)
-                vision_result.y = int(height/2 - largest_circle_center[1])
+                x = int(largest_circle_center[0] - width/2)
+                y = int(height/2 - largest_circle_center[1])
             else:
-                vision_result.x = 3000
-                vision_result.y = 3000
+                x = float("NaN")
+                y = float("NaN")
         
-            vision_result_pub.publish(vision_result)
-
+            print(dropzone_service_client(x,y))
         rate.sleep()
+
+
+
 
 if __name__ == "__main__":
     try:

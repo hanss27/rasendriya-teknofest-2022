@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  std_srvs
   mavros
   message_generation
   roslaunch
@@ -55,16 +56,14 @@ roslaunch_add_file_check(launch)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(FILES
-	Dropzone.msg
-)
+#add_message_files(FILES
+#	Dropzone.msg
+#)
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(FILES
+    Dropzone.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -76,6 +75,7 @@ add_message_files(FILES
 ## Generate added messages and services with any dependencies listed here
 generate_messages(DEPENDENCIES
 	std_msgs
+    std_srvs
 )
 
 ################################################
@@ -110,7 +110,7 @@ generate_messages(DEPENDENCIES
 catkin_package(
 #    INCLUDE_DIRS include
 #    LIBRARIES rasendriya
-    CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+    CATKIN_DEPENDS roscpp rospy std_msgs std_srvs message_runtime
 #    DEPENDS system_lib
 )
 
@@ -159,15 +159,15 @@ add_executable(mission_control
 target_link_libraries(mission_control
     ${catkin_LIBRARIES})
 
-add_executable(test_servo
-    src/testing/test_servo.cpp)
-target_link_libraries(test_servo
-    ${catkin_LIBRARIES})
+#add_executable(test_servo
+#    src/testing/test_servo.cpp)
+#target_link_libraries(test_servo
+#    ${catkin_LIBRARIES})
 
-add_executable(test_waypoint
-    src/testing/test_waypoint.cpp)
-target_link_libraries(test_waypoint
-    ${catkin_LIBRARIES})
+#add_executable(test_waypoint
+#    src/testing/test_waypoint.cpp)
+#target_link_libraries(test_waypoint
+#    ${catkin_LIBRARIES})
 
 #############
 ## Install ##
