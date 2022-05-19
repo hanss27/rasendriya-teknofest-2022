@@ -61,10 +61,9 @@ def dropzone_detect():
             rospy.loginfo_once("Starting target detection")
             # pre process
             img = cam.read()
-            img = imutils.resize(img, width=400)
+            img = imutils.resize(img, width=200)
             #img_disp = img.copy()
             
-            #img = imutils.resize(img, width=400)
             blur = cv2.GaussianBlur(img, (7, 7), 0)
 
             # color filtering
