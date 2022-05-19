@@ -2,7 +2,8 @@
 #include "rasendriya/Dropzone.h"
 #include "mavros_msgs/CommandLong.h"
 
-int x_dz, y_dz;
+float x_dz = NAN;
+float y_dz = NAN;
 
 bool dropzone_target_callback(rasendriya::Dropzone::Request& dropzone_req, rasendriya::Dropzone::Response& dropzone_res){
 	x_dz = dropzone_req.x;

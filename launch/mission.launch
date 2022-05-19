@@ -11,22 +11,17 @@
     You can check by writing v4l2-ctl list-devices in terminal 
     -->
     <arg name="camera_num" default="0" />
-    <node name="vision_dropzone" pkg="rasendriya" type="vision_dropzone.py" args="$(arg camera_num)" output="screen"/>
     
-    <!-- 
-    this argument determines the calculation dropping mode
-    | Camera Projection Modes |
-    calc_mode:=1 projectile motion calculator is not used
-    calc_mode:=2 projectile motion calculator is used
-    | Non-camera Projection Modes |
-    calc_mode:=3 projectile motion calculator is not used 
-    calc_mode:=4 projectile motion calculator is used
-    -->
-    <arg name="calc_mode" default="4" />
-    <param name="/rasendriya/dropping_offset" value="3" />
-    <param name="/rasendriya/dropping_altitude" value="30" />
-    <param name="/rasendriya/drag_coefficient" value="0.6" />
-    <param name="/rasendriya/calc_mode" value="$(arg calc_mode)" />
+    <node name="vision_dropzone" pkg="rasendriya" type="vision_dropzone.py" args="$(arg camera_num)" output="screen"/>
+
+    <param name="/rasendriya/dropping_altitude" value="15" />
+    <param name="/rasendriya/focal_length/x" value="15" />
+    <param name="/rasendriya/focal_length/y" value="15" />
+
+    <param name="/rasendriya/wp_drop_first" value="10" />
+    <param name="/rasendriya/wp_drop_second" value="18" />
+    <param name="/rasendriya/wp_prepare_scan" value="3" />
+    
     <node name="mission_control" pkg ="rasendriya" type="mission_control" output="screen"/>
     
 </launch>

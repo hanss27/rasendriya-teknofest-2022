@@ -24,6 +24,13 @@ def vision_flag_req(req):
     return SetBoolResponse(True)
 
 def dropzone_detect():
+    # initialize ros node
+    rospy.init_node('vision_dropzone')
+    rospy.wait_for_service('/rasendriya/dropzone')
+
+    # initialize ros publisher
+    rate = rospy.Rate(25)
+
     # camera resolution width and height parameters
     width = 400
     height = 400
@@ -37,32 +44,25 @@ def dropzone_detect():
         cam = VideoStream(usePiCamera=False).start()
     else:
         cam = VideoStream(src=args.integers).start()
-
-    # initialize ros node
-    rospy.init_node('vision_dropzone')
-    rospy.wait_for_service('/rasendriya/dropzone')
-
-    # initialize ros publisher
-    rate = rospy.Rate(25)
     
     # initialize ros subscriber
     # rospy.Subscriber("/rasendriya/vision_flag", SetBool, vision_flag_callback)
     rospy.Service('/rasendriya/vision_flag', SetBool, vision_flag_req)
 
     # set lower and upper hsv threshold in red
-    lower = np.array([170, 127, 117], dtype='uint8')
-    upper = np.array([179, 255, 255], dtype='uint8')
+    lower = np.array([0, 0, 178], dtype='uint8')
+    upper = np.array([179, 255, 255],  dtype='uint8')
 
     while not rospy.is_shutdown():
         
         rospy.loginfo_once("Vision program ready")
 
         if (vision_flag):
-            rospy.loginfo_once("Vision program launched. Starting target detection")
+            rospy.loginfo_once("Starting target detection")
             # pre process
             img = cam.read()
             img = imutils.resize(img, width=400)
-            img_disp = img.copy()
+            #img_disp = img.copy()
             
             #img = imutils.resize(img, width=400)
             blur = cv2.GaussianBlur(img, (7, 7), 0)
@@ -74,9 +74,9 @@ def dropzone_detect():
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
             # circle detection using hough transform
-            circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=200,
-                param1=400, param2=40,
-                minRadius=5, maxRadius=120)
+            circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=44,
+                param1=148, param2=32, #23
+                minRadius=0, maxRadius=width)
 
             largest_circle_radius = 0
             largest_circle_center = None
@@ -98,15 +98,13 @@ def dropzone_detect():
             if largest_circle_center is not None:
                 x = int(largest_circle_center[0] - width/2)
                 y = int(height/2 - largest_circle_center[1])
+
+                dropzone_service_client(x,y)
             else:
-                x = float("NaN")
-                y = float("NaN")
+                x = float("nan")
+                y = float("nan")
         
-            print(dropzone_service_client(x,y))
         rate.sleep()
-
-
-
 
 if __name__ == "__main__":
     try:

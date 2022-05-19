@@ -179,4 +179,7 @@ def dropzone_detect():
             break
 
 if __name__ == "__main__":
-    dropzone_detect()
+    try:
+        dropzone_detect()
+    except KeyboardInterrupt:
+        pass
