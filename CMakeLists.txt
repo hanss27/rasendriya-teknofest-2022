@@ -159,15 +159,15 @@ add_executable(mission_control
 target_link_libraries(mission_control
     ${catkin_LIBRARIES})
 
-#add_executable(test_servo
-#    src/testing/test_servo.cpp)
-#target_link_libraries(test_servo
-#    ${catkin_LIBRARIES})
+add_executable(test_servo
+    src/testing/test_servo.cpp)
+target_link_libraries(test_servo
+    ${catkin_LIBRARIES})
 
-#add_executable(test_waypoint
-#    src/testing/test_waypoint.cpp)
-#target_link_libraries(test_waypoint
-#    ${catkin_LIBRARIES})
+add_executable(test_waypoint
+    src/testing/test_waypoint.cpp)
+target_link_libraries(test_waypoint
+    ${catkin_LIBRARIES})
 
 #############
 ## Install ##

@@ -4,9 +4,11 @@
 
 int x_dz, y_dz;
 
-void dropzone_target_callback(const rasendriya::Dropzone& dropzone_loc){
-	x_dz = dropzone_loc.x;
-	y_dz = dropzone_loc.y;
+bool dropzone_target_callback(rasendriya::Dropzone::Request& dropzone_req, rasendriya::Dropzone::Response& dropzone_res){
+	x_dz = dropzone_req.x;
+	y_dz = dropzone_req.y;
+	dropzone_res.status = true;
+	return true;
 }
 
 bool trigger_servo(int servo_num, ros::ServiceClient& _svo_client){
@@ -34,21 +36,15 @@ int main(int argc, char **argv) {
 	
 	ros::ServiceClient set_servo_client = nh.serviceClient<mavros_msgs::CommandLong>("/mavros/cmd/command", 1);
 
-	ros::Subscriber dropzone_target_subscriber = nh.subscribe("/rasendriya/dropzone", 3, dropzone_target_callback);
+	ros::ServiceServer dropzone_service = nh.advertiseService("/rasendriya/dropzone", dropzone_target_callback);
 
 	while(ros::ok()) {
-		if((x_dz && y_dz) != 3000) {
-			++hit_count;
-		}
-		else {
-			--hit_count;
-		}
-
-		if(hit_count >= 3) {
+		if((x_dz != NAN) && (y_dz != NAN)) {
+			ROS_INFO_ONCE("DROPZONE TARGET ACQUIRED. PROCEED TO EXECUTE DROPPING SEQUENCE");
 			trigger_servo(6, set_servo_client);
 			if(trigger_servo(6, set_servo_client)) {
 				trigger_servo(7, set_servo_client);
-				break;
+				ros::shutdown();
 			}
 		}
 		ros::spinOnce();
