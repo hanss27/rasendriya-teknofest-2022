@@ -6,6 +6,9 @@ import argparse
 import math
 from imutils.video import VideoStream
 
+old_cX = None
+old_cY = None
+
 '''
 Tuning APIs
 '''
@@ -19,10 +22,10 @@ def get_parameters():
     """
     Generate hough parameter values
     """
-    _dp = cv2.getTrackbarPos('dp (x10)', 'Hough parameter tune') / 10
-    _minDist = cv2.getTrackbarPos('minDist', 'Hough parameter tune')
-    _param1 = cv2.getTrackbarPos('param1', 'Hough parameter tune')
-    _param2 = cv2.getTrackbarPos('param2', 'Hough parameter tune')
+    _dp = max(cv2.getTrackbarPos('dp (x10)', 'Hough parameter tune') / 10, 1)
+    _minDist = max(cv2.getTrackbarPos('minDist', 'Hough parameter tune'), 1)
+    _param1 = max(cv2.getTrackbarPos('param1', 'Hough parameter tune'), 1)
+    _param2 = max(cv2.getTrackbarPos('param2', 'Hough parameter tune'), 1)
     _minRadius = cv2.getTrackbarPos('minRadius', 'Hough parameter tune')
     _maxRadius = cv2.getTrackbarPos('maxRadius', 'Hough parameter tune')
     
@@ -30,7 +33,7 @@ def get_parameters():
 
 def param_trackbar():
     cv2.namedWindow('Hough parameter tune')
-    cv2.createTrackbar('dp (x10)', 'Hough parameter tune', 1, 3, trackbar_callback)
+    cv2.createTrackbar('dp (x10)', 'Hough parameter tune', 1, 20, trackbar_callback)
     cv2.createTrackbar('minDist', 'Hough parameter tune', 1, 400, trackbar_callback)
     cv2.createTrackbar('param1', 'Hough parameter tune', 1, 400, trackbar_callback)
     cv2.createTrackbar('param2', 'Hough parameter tune', 1, 200, trackbar_callback)
@@ -67,9 +70,10 @@ def threshold_trackbar():
 Main detection function
 '''
 def dropzone_detect():
+    global old_cX, old_cY
     # camera resolution width and height parameters
-    width = 400
-    height = 400
+    width = 200
+    height = 200
     
     # parsing arguments
     parser = argparse.ArgumentParser()
@@ -78,10 +82,14 @@ def dropzone_detect():
     parser.add_argument('-th', "--tune_hough", action='store_true', help='Tune hough parameters mode')
     args = parser.parse_args()
 
+    img = cv2.imread('6.jpg')
+
+    '''
     if args.video_address == -1:
         cam = VideoStream(usePiCamera=False).start()
     else:
         cam = VideoStream(src=args.video_address).start()
+    '''
     
     time.sleep(2.)
 
@@ -92,12 +100,12 @@ def dropzone_detect():
         threshold_trackbar()
     else:
         # set lower and upper hsv threshold in red
-        lower = np.array([170, 127, 117], dtype='uint8')
+        lower = np.array([0, 0, 178], dtype='uint8')
         upper = np.array([179, 255, 255],  dtype='uint8')
 
     while True:
         # pre process
-        img = cam.read()
+        #img = cam.read()
         img = imutils.resize(img, width=400)
         img_disp = img.copy()
         blur = cv2.GaussianBlur(img, (7, 7), 0)
@@ -121,9 +129,9 @@ def dropzone_detect():
                 param1=hough_param1, param2=hough_param2,
                 minRadius=hough_minRadius, maxRadius=hough_maxRadius)
         else:
-            circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=200,
-                param1=400, param2=40,
-                minRadius=5, maxRadius=120)
+            circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=44,
+                param1=148, param2=32, #23
+                minRadius=0, maxRadius=width)
 
         largest_circle_radius = 0
         largest_circle_center = None
@@ -150,16 +158,19 @@ def dropzone_detect():
             cX = largest_circle_center[0] - width/2
             cY = height/2 - largest_circle_center[1]
         else:
-            cX = float("NaN")
-            cY = float("NaN")
+            cX = float('nan')
+            cY = float('nan')
         
         cNorthAngle = math.degrees(math.atan2(cX, cY))
         cNormalAngle = math.degrees(math.atan2(cY, cX))
-        
-        print("x coordinate:", cX)
-        print("y coordinate", cY)
-        print("north angle", cNorthAngle)
-        print("normal angle", cNormalAngle)
+
+        if ((old_cX != cX) and (old_cY != cY)):
+            print("x coordinate", cX)
+            print("y coordinate", cY)
+            print("north angle", cNorthAngle)
+            print("normal angle", cNormalAngle)
+            old_cX = cX
+            old_cY = cY
 
         cv2.imshow("Camera", img_disp)
         cv2.imshow("Mask", frame)
