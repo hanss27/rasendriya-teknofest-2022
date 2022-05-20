@@ -31,6 +31,8 @@ def dropzone_detect():
     # initialize ros publisher
     rate = rospy.Rate(25)
 
+    hit_count = 0
+
     # camera resolution width and height parameters
     width = 400
     height = 400
@@ -97,11 +99,16 @@ def dropzone_detect():
             if largest_circle_center is not None:
                 x = int(largest_circle_center[0] - width/2)
                 y = int(height/2 - largest_circle_center[1])
+                hit_count = hit_count + 1
 
-                dropzone_service_client(x,y)
             else:
                 x = float("nan")
                 y = float("nan")
+
+        if (hit_count > 2):
+            dropzone_service_client(x,y)
+            vision_flag = False
+            rospy.signal_shutdown("Target acquiring completed")
         
         rate.sleep()
 
