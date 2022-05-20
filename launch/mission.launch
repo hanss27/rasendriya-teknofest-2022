@@ -15,8 +15,8 @@
     <node name="vision_dropzone" pkg="rasendriya" type="vision_dropzone.py" args="$(arg camera_num)" output="screen"/>
 
     <param name="/rasendriya/dropping_altitude" value="15" />
-    <param name="/rasendriya/focal_length/x" value="15" />
-    <param name="/rasendriya/focal_length/y" value="15" />
+    <param name="/rasendriya/focal_length/x" value="217.10032334" />
+    <param name="/rasendriya/focal_length/y" value="232.0753471" />
 
     <param name="/rasendriya/wp_drop_first" value="10" />
     <param name="/rasendriya/wp_drop_second" value="18" />
