@@ -33,7 +33,8 @@ void waypoint_reached_callback(const mavros_msgs::WaypointReached& wp_reached){
 
 // CALLBACKS //
 
-float x_pixel, y_pixel;
+float x_pixelc = -3000;
+float y_pixel = -3000;
 float alt, gps_hdg;
 double gps_long, gps_lat;
 float vel_y, vel_z;
@@ -180,11 +181,11 @@ int main(int argc, char **argv) {
 	float dropping_altitude;
 	ros::param::get("/rasendriya/dropping_altitude", dropping_altitude);
 
-	int wp_drop_first, wp_drop_second, wp_prepare_scan;
-	ros::param::get("/rasendriya/wp_drop_first", wp_drop_first);
-	ros::param::get("/rasendriya/wp_drop_second", wp_drop_second);
+	int wp_prepare_scan;
+	int wp_drop[2];
+	ros::param::get("/rasendriya/wp_drop_first", wp_drop[0]);
+	ros::param::get("/rasendriya/wp_drop_second", wp_drop[1]);
 	ros::param::get("/rasendriya/wp_prepare_scan", wp_prepare_scan);
-	int wp_drop[2] = {wp_drop_first, wp_drop_second};
 
 	// first WP loading from FCU. Ensures that companion computer has the same waypoints as FCU
 	while(ros::ok()) {
@@ -211,7 +212,7 @@ int main(int argc, char **argv) {
 			}
 		}
 		else {
-			if(waypoint_reached == wp_prepare_scan) {
+			if(waypoint_reached == wp_prepare_scan + 1) {
 				vision_flag.request.data = false;
 				vision_flag_client.call(vision_flag);
 				ROS_INFO_ONCE("Vision program stopped");
@@ -220,9 +221,11 @@ int main(int argc, char **argv) {
 		}
 		
 		// dropzone confirmed
-		if((x_pixel != NAN) && (y_pixel != NAN)){
+		if((x_pixel != -3000) && (y_pixel != -3000)){
 			
 			ROS_INFO_ONCE("DROPZONE TARGET ACQUIRED. PROCEED TO EXECUTE DROPPING SEQUENCE");
+
+			dropping_altitude = waypoint_push.request.waypoints[wp_drop[0] - 1].z_alt;
 
 			calc_drop_coord(tgt_latx, tgt_lony, calc_projectile_distance(dropping_altitude));
 			

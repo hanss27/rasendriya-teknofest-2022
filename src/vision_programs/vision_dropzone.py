@@ -2,8 +2,6 @@ import rospy
 from rasendriya.srv import Dropzone 
 import cv2
 import numpy as np
-import time
-import math
 import imutils
 import argparse
 from imutils.video import VideoStream
@@ -13,7 +11,6 @@ vision_flag = False
 
 # Sending Dropzone Service
 def dropzone_service_client(x,y):
-    rospy.wait_for_service('/rasendriya/dropzone')
     dropzone_service = rospy.ServiceProxy('/rasendriya/dropzone', Dropzone)
     resp = dropzone_service(x,y)
     return resp.status
@@ -34,8 +31,8 @@ def dropzone_detect():
     hit_count = 0
 
     # camera resolution width and height parameters
-    width = 400
-    height = 400
+    _width = 200
+    height = _width
 
     # parsing arguments
     parser = argparse.ArgumentParser()
@@ -63,7 +60,7 @@ def dropzone_detect():
             rospy.loginfo_once("Starting target detection")
             # pre process
             img = cam.read()
-            img = imutils.resize(img, width=200)
+            img = imutils.resize(img, width=_width)
             #img_disp = img.copy()
             
             blur = cv2.GaussianBlur(img, (7, 7), 0)
@@ -77,7 +74,7 @@ def dropzone_detect():
             # circle detection using hough transform
             circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=44,
                 param1=148, param2=32, #23
-                minRadius=0, maxRadius=width)
+                minRadius=0, maxRadius=_width)
 
             largest_circle_radius = 0
             largest_circle_center = None
@@ -97,18 +94,13 @@ def dropzone_detect():
 
             # transform pixel coordinate system to screen coordinate system
             if largest_circle_center is not None:
-                x = int(largest_circle_center[0] - width/2)
+                x = int(largest_circle_center[0] - _width/2)
                 y = int(height/2 - largest_circle_center[1])
                 hit_count = hit_count + 1
 
-            else:
-                x = float("nan")
-                y = float("nan")
-
         if (hit_count > 2):
             dropzone_service_client(x,y)
-            vision_flag = False
-            rospy.signal_shutdown("Target acquiring completed")
+            hit_count = 0
         
         rate.sleep()
 

@@ -1,9 +1,10 @@
 #include "ros/ros.h"
 #include "rasendriya/Dropzone.h"
 #include "mavros_msgs/CommandLong.h"
+#include "std_srvs/SetBool.h"
 
-float x_dz = NAN;
-float y_dz = NAN;
+float x_dz = -3000;
+float y_dz = -3000;
 
 bool dropzone_target_callback(rasendriya::Dropzone::Request& dropzone_req, rasendriya::Dropzone::Response& dropzone_res){
 	x_dz = dropzone_req.x;
@@ -34,21 +35,25 @@ int main(int argc, char **argv) {
 	ros::NodeHandle nh;
 
 	int hit_count;
+
 	
 	ros::ServiceClient set_servo_client = nh.serviceClient<mavros_msgs::CommandLong>("/mavros/cmd/command", 1);
 
 	ros::ServiceServer dropzone_service = nh.advertiseService("/rasendriya/dropzone", dropzone_target_callback);
+	ros::Rate rate(25);
 
 	while(ros::ok()) {
-		if((x_dz != NAN) && (y_dz != NAN)) {
+
+		ROS_INFO_ONCE("Test servo program started");
+		//std::string str1 = std::to_string(x_dz);
+
+		if((x_dz != -3000) && (y_dz != -3000)) {
 			ROS_INFO_ONCE("DROPZONE TARGET ACQUIRED. PROCEED TO EXECUTE DROPPING SEQUENCE");
 			trigger_servo(6, set_servo_client);
-			if(trigger_servo(6, set_servo_client)) {
-				trigger_servo(7, set_servo_client);
-				ros::shutdown();
-			}
+			trigger_servo(7, set_servo_client);
 		}
 		ros::spinOnce();
+		rate.sleep();
 	}
 	return 0;
 }
