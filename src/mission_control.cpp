@@ -7,21 +7,19 @@
 #include "mavros_msgs/WaypointPush.h"
 #include "mavros_msgs/WaypointList.h"
 #include "mavros_msgs/WaypointPull.h"
-
 #include "mavros_msgs/CommandCode.h"
+#include "mavros_msgs/State.h"
+#include "mavros_msgs/StreamRate.h"
 #include "mavros_msgs/Altitude.h"
-
 #include "geometry_msgs/TwistStamped.h"
-
 #include "sensor_msgs/NavSatFix.h"
-
 #include "std_msgs/Bool.h"
 #include "std_msgs/Float64.h"
 
 #include "std_srvs/SetBool.h"
 
 #include <math.h>
-#include <bits/stdc++.h>
+//#include <bits/stdc++.h>
 
 // REMINDER: wp_num STARTS FROM 0
 
@@ -33,7 +31,7 @@ void waypoint_reached_callback(const mavros_msgs::WaypointReached& wp_reached){
 
 // CALLBACKS //
 
-float x_pixelc = -3000;
+float x_pixel = -3000;
 float y_pixel = -3000;
 float alt, gps_hdg;
 double gps_long, gps_lat;
@@ -143,10 +141,17 @@ void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_of
 	_tgt_lony = degrees(lon + atan2(sin(hdg+cam_angle)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx))));
 }
 
+bool timeout_criterion(const ros::Time& start, const float& time) {
+	if(ros::Time::now() - start > ros::Duration(time)) return true;
+	else return false;
+}
+
 // MAIN FUNCTION //
 
 int main(int argc, char **argv) {
 	double tgt_latx, tgt_lony;
+
+	float dropping_altitude;
 
 	bool vision_started = false;
 
@@ -159,27 +164,24 @@ int main(int argc, char **argv) {
 	ros::init(argc, argv, "mission_control");
 	ros::NodeHandle nh;
 
-	ros::ServiceClient waypoint_push_client = nh.serviceClient<mavros_msgs::WaypointPush>("/mavros/mission/push");
+	ros::ServiceClient waypoint_push_cli = nh.serviceClient<mavros_msgs::WaypointPush>("/mavros/mission/push");
 
-	ros::ServiceClient waypoint_pull_client = nh.serviceClient<mavros_msgs::WaypointPull>("/mavros/mission/pull");
+	ros::ServiceClient waypoint_pull_cli = nh.serviceClient<mavros_msgs::WaypointPull>("/mavros/mission/pull");
+
+	ros::ServiceClient set_stream_rate_cli = nh.serviceClient<mavros_msgs::StreamRate>("/mavros/set_stream_rate");
 	
-	ros::ServiceClient vision_flag_client = nh.serviceClient<std_srvs::SetBool>("/rasendriya/vision_flag");
+	ros::ServiceClient vision_flag_cli = nh.serviceClient<std_srvs::SetBool>("/rasendriya/vision_flag");
 
-	ros::ServiceServer dropzone_service = nh.advertiseService("/rasendriya/dropzone", dropzone_target_callback);
+	ros::ServiceServer dropzone_srv = nh.advertiseService("/rasendriya/dropzone", dropzone_target_callback);
 
 	ros::Subscriber waypoint_list_sub = nh.subscribe("/mavros/mission/waypoints", 1, waypoint_list_callback);
-
 	ros::Subscriber waypoint_reached_sub = nh.subscribe("/mavros/mission/reached", 1, waypoint_reached_callback);
-	ros::Subscriber gps_coordinate_sub= nh.subscribe("/mavros/global_position/global", 1, gps_callback);
+	ros::Subscriber gps_coordinate_sub = nh.subscribe("/mavros/global_position/global", 1, gps_callback);
 	ros::Subscriber alt_sub = nh.subscribe("/mavros/altitude", 1, alt_callback);
 	ros::Subscriber gps_hdg_sub = nh.subscribe("/mavros/global_position/compass_hdg", 1, gps_hdg_callback);
 	ros::Subscriber vel_sub = nh.subscribe("/mavros/global_position/gp_vel", 1, vel_callback);
 
 	ros::Rate rate(25);
-	
-	// ROS LAUNCH PARAMETERS //
-	float dropping_altitude;
-	ros::param::get("/rasendriya/dropping_altitude", dropping_altitude);
 
 	int wp_prepare_scan;
 	int wp_drop[2];
@@ -187,13 +189,38 @@ int main(int argc, char **argv) {
 	ros::param::get("/rasendriya/wp_drop_second", wp_drop[1]);
 	ros::param::get("/rasendriya/wp_prepare_scan", wp_prepare_scan);
 
+	ros::Time start_up  = ros::Time::now();
+
 	// first WP loading from FCU. Ensures that companion computer has the same waypoints as FCU
+	while(ros::ok() && (waypoint_push.request.waypoints.size() == 0)) {
+		ros::spinOnce();
+		rate.sleep();
+
+		if(timeout_criterion(start_up, 8)) {
+			ROS_ERROR("Timeout. Failed to get WP");
+			ROS_ERROR("Exiting program");
+			return -1;
+		}
+	}
+	ROS_INFO("Number of loaded waypoints: %d", int(waypoint_push.request.waypoints.size()));
+	ROS_INFO("Waypoint load from FCU completed");
+
+	// set stream rate
 	while(ros::ok()) {
-		if(waypoint_push.request.waypoints.size() != 0) {
-			ROS_INFO("Number of loaded waypoints: %d", int(waypoint_push.request.waypoints.size()));
-			ROS_INFO("Waypoint load from FCU completed");
+		mavros_msgs::StreamRate stream_fcu;
+		stream_fcu.request.stream_id = 0;
+		stream_fcu.request.message_rate = 30;
+		stream_fcu.request.on_off = true;
+		if(set_stream_rate_cli.call(stream_fcu)) {
+			ROS_INFO("Stream from FCU set!");
 			break;
 		}
+		else if(timeout_criterion(start_up, 15)) {
+			ROS_ERROR("Timeout. Failed to set FCU stream");
+			ROS_ERROR("Exiting program");
+			return -1;
+		}
+
 		ros::spinOnce();
 		rate.sleep();
 	}
@@ -206,7 +233,7 @@ int main(int argc, char **argv) {
 		if(!vision_started) {
 			if(waypoint_reached == wp_prepare_scan - 1) {
 				vision_flag.request.data = true;
-				vision_flag_client.call(vision_flag);
+				vision_flag_cli.call(vision_flag);
 				ROS_INFO_ONCE("Vision program started");
 				vision_started = true;
 			}
@@ -214,7 +241,7 @@ int main(int argc, char **argv) {
 		else {
 			if(waypoint_reached == wp_prepare_scan + 1) {
 				vision_flag.request.data = false;
-				vision_flag_client.call(vision_flag);
+				vision_flag_cli.call(vision_flag);
 				ROS_INFO_ONCE("Vision program stopped");
 				vision_started = false;
 			}
@@ -235,7 +262,7 @@ int main(int argc, char **argv) {
 				waypoint_push.request.waypoints[wp_drop[i] - 1].y_long = tgt_lony;
 			}
 
-			if(waypoint_push_client.call(waypoint_push) && waypoint_pull_client.call(waypoint_pull)){
+			if(waypoint_push_cli.call(waypoint_push) && waypoint_pull_cli.call(waypoint_pull)){
 				ROS_INFO("Image processed coordinates sent");
 			}
 			else {
