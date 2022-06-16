@@ -82,15 +82,13 @@ def dropzone_detect():
     parser.add_argument('-th', "--tune_hough", action='store_true', help='Tune hough parameters mode')
     args = parser.parse_args()
 
-    img = cv2.imread('6.jpg')
+    #img = cv2.imread('6.jpg')
 
-    '''
     if args.video_address == -1:
         cam = VideoStream(usePiCamera=False).start()
     else:
         cam = VideoStream(src=args.video_address).start()
-    '''
-    
+        
     time.sleep(2.)
 
     if args.tune_hough:
@@ -105,8 +103,8 @@ def dropzone_detect():
 
     while True:
         # pre process
-        #img = cam.read()
-        img = imutils.resize(img, width=400)
+        img = cam.read()
+        img = imutils.resize(img, width=height)
         img_disp = img.copy()
         blur = cv2.GaussianBlur(img, (7, 7), 0)
 

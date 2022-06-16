@@ -18,7 +18,7 @@ def dropzone_service_client(x,y):
 def vision_flag_req(req):
     global vision_flag
     vision_flag = req.data
-    return SetBoolResponse(True)
+    return SetBoolResponse(True, "Flag set to on. Scanning")
 
 def dropzone_detect():
     # initialize ros node
@@ -29,6 +29,8 @@ def dropzone_detect():
     rate = rospy.Rate(25)
 
     hit_count = 0
+    x = -3000
+    y = -3000
 
     # camera resolution width and height parameters
     _width = 200
@@ -43,6 +45,8 @@ def dropzone_detect():
         cam = VideoStream(usePiCamera=False).start()
     else:
         cam = VideoStream(src=args.integers).start()
+
+    rospy.sleep(2.)
     
     # initialize ros subscriber
     # rospy.Subscriber("/rasendriya/vision_flag", SetBool, vision_flag_callback)
@@ -61,7 +65,7 @@ def dropzone_detect():
             # pre process
             img = cam.read()
             img = imutils.resize(img, width=_width)
-            #img_disp = img.copy()
+            img_disp = img.copy()
             
             blur = cv2.GaussianBlur(img, (7, 7), 0)
 
@@ -97,9 +101,12 @@ def dropzone_detect():
                 x = int(largest_circle_center[0] - _width/2)
                 y = int(height/2 - largest_circle_center[1])
                 hit_count = hit_count + 1
+                #rospy.loginfo("x: {}".format(x))
+                #rospy.loginfo("y: {}".format(y))
 
         if (hit_count > 2):
             dropzone_service_client(x,y)
+            vision_flag = False
             hit_count = 0
         
         rate.sleep()
