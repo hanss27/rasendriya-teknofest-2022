@@ -115,6 +115,20 @@ float calc_projectile_distance(const float& _drop_alt) {
 	return _drop_offset;
 }
 
+// camera transformation API (pinhole model)
+void transform_camera(float& _X_meter, float& _Y_meter) {
+	double focal_length_x, focal_length_y, principal_point_x, principal_point_y;
+	double k1, k2, k3, k4, k5;
+
+	ros::param::get("/rasendriya/camera/focal_length/x", focal_length_x);
+	ros::param::get("/rasendriya/camera/focal_length/x", focal_length_x);
+	ros::param::get("/rasendriya/camera/principal_point/x", principal_point_x);
+	ros::param::get("/rasendriya/camera/principal_point/y", principal_point_y);
+
+	_X_meter = focal_length_x/alt*x_pixel + principal_point_x;
+	_Y_meter = focal_length_y/alt*y_pixel + principal_point_y;
+}
+
 // coordinate calculator API
 #define R_earth 6378.1*1e3
 
@@ -122,17 +136,11 @@ void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_of
 	float hdg = radians(gps_hdg);
 	double lat = radians(gps_lat);
 	double lon = radians(gps_long);
-
-	float cam_angle, r_dist;
-	double focal_length_x, focal_length_y;
-	//const float pixel_to_mm = 0.2645;
-
-	ros::param::get("/rasendriya/focal_length/x", focal_length_x);
-	ros::param::get("/rasendriya/focal_length/x", focal_length_x);
-
-	float X_meter = x_pixel*alt/focal_length_x;
-	float Y_meter = y_pixel*alt/focal_length_y;
 	
+	float X_meter, Y_meter, cam_angle, r_dist;
+
+	transform_camera(X_meter, Y_meter);
+
 	r_dist = sqrt(pow(X_meter, 2) + pow(Y_meter + _drop_offset, 2));
 	cam_angle = radians(atan2(X_meter, Y_meter));
 
@@ -154,6 +162,7 @@ int main(int argc, char **argv) {
 	float dropping_altitude;
 
 	bool vision_started = false;
+	bool send_coor 		= true;
 
 	mavros_msgs::WaypointPull waypoint_pull;
 
@@ -209,6 +218,9 @@ int main(int argc, char **argv) {
 			ROS_INFO("Stream from FCU set!");
 			break;
 		}
+		else {
+			ROS_INFO("Failed to stream from FCU set, retrying");
+		}
 
 		ros::spinOnce();
 		rate.sleep();
@@ -222,44 +234,63 @@ int main(int argc, char **argv) {
 		if(!vision_started) {
 			if(waypoint_reached == wp_prepare_scan - 1) {
 				vision_flag.request.data = true;
-				vision_flag_cli.call(vision_flag);
-				ROS_INFO_ONCE("Vision program started");
-				vision_started = true;
+				if(vision_flag_cli.call(vision_flag)) {
+					ROS_INFO("Starting vision program");
+					vision_started = true;
+				}
+				else {
+					ROS_INFO("Failed to start vision program, retrying");
+				}
 			}
 		}
 		else {
 			if(waypoint_reached == wp_prepare_scan + 1) {
 				vision_flag.request.data = false;
-				vision_flag_cli.call(vision_flag);
-				ROS_INFO_ONCE("Vision program stopped");
-				vision_started = false;
+				if(vision_flag_cli.call(vision_flag)) {
+					ROS_INFO("Final scanning waypoint reached. Stopping vision program");
+					vision_started = false;
+				}
+				else {
+					ROS_INFO("Failed to stop vision program, retrying");
+				}
 			}
 		}
 		
 		// dropzone confirmed
 		if((x_pixel != -3000) && (y_pixel != -3000)){
 			
-			ROS_INFO_ONCE("DROPZONE TARGET ACQUIRED. PROCEED TO EXECUTE DROPPING SEQUENCE");
+			ROS_INFO("DROPZONE TARGET ACQUIRED. EXECUTING DROPPING SEQUENCE");
 
 			dropping_altitude = waypoint_push.request.waypoints[wp_drop[0] - 1].z_alt;
 
 			calc_drop_coord(tgt_latx, tgt_lony, calc_projectile_distance(dropping_altitude));
 			
 			// change WP NAV directly before dropping
+			ROS_INFO("Updating waypoints");
 			for(int i = 0; i <= 1; i++) {
 				waypoint_push.request.waypoints[wp_drop[i] - 1].x_lat = tgt_latx;
 				waypoint_push.request.waypoints[wp_drop[i] - 1].y_long = tgt_lony;
+				ROS_INFO("WP: %d | Latitude: %f | Longitude: %f", wp_drop[i] - 1, tgt_latx, tgt_lony);
 			}
 
-			if(waypoint_push_cli.call(waypoint_push) && waypoint_pull_cli.call(waypoint_pull)){
-				ROS_INFO("Image processed coordinates sent");
+			if(waypoint_push_cli.call(waypoint_push) && waypoint_pull_cli.call(waypoint_pull) && send_coor == true){
+				ROS_INFO("Image processed coordinates sent!");
+				vision_flag.request.data = false;
+				if(vision_flag_cli.call(vision_flag)) {
+					ROS_INFO("Stopping vision program");
+					vision_started = false;
+					send_coor = false;
+					x_pixel = -3000;
+					y_pixel = -3000;
+				}
+				else {
+					ROS_INFO("Failed to stop vision program, retrying");
+				}
 			}
 			else {
-				ROS_WARN("Failed to send image processed coordinates. Using written default coordinate");
+				ROS_WARN("Failed to send image processed coordinates, retrying");
 			}
 
-			x_pixel = NAN;
-			y_pixel = NAN;
 		}
 
 		ros::spinOnce();

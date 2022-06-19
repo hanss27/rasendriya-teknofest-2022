@@ -8,11 +8,13 @@ from imutils.video import VideoStream
 from std_srvs.srv import SetBool, SetBoolResponse
 
 vision_flag = False
+vision_flag_old = False
 
 # Sending Dropzone Service
 def dropzone_service_client(x,y):
     dropzone_service = rospy.ServiceProxy('/rasendriya/dropzone', Dropzone)
     resp = dropzone_service(x,y)
+    rospy.loginfo("Dropzone coordinates sent")
     return resp.status
 
 def vision_flag_req(req):
@@ -20,8 +22,23 @@ def vision_flag_req(req):
     vision_flag = req.data
     return SetBoolResponse(True, "Flag set to on. Scanning")
 
+def draw(_img, _ctr, _rad, _hit_cnt):
+    # draw and save image
+    cv2.circle(_img, _ctr, 1, (255,255,255), 3)
+    cv2.putText(_img, "center", (_ctr[0] - 20, _ctr[1] - 20),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    # circle outline
+    cv2.circle(_img, _ctr, _rad, (0,255,0), 3)
+
+    if (_hit_cnt > 2):
+        cv2.imwrite('target.jpg', _img)
+    else:
+        cv2.imwrite(f'scan_{_hit_cnt}.jpg', _img)
+
+    return _img
+
 def dropzone_detect():
-    global vision_flag
+    global vision_flag, old_vision_flag
     # initialize ros node
     rospy.init_node('vision_dropzone')
     rospy.wait_for_service('/rasendriya/dropzone')
@@ -50,7 +67,6 @@ def dropzone_detect():
     rospy.sleep(2.)
     
     # initialize ros subscriber
-    # rospy.Subscriber("/rasendriya/vision_flag", SetBool, vision_flag_callback)
     rospy.Service('/rasendriya/vision_flag', SetBool, vision_flag_req)
 
     # set lower and upper hsv threshold in red
@@ -61,12 +77,15 @@ def dropzone_detect():
         
         rospy.loginfo_once("Vision program ready")
 
+        if((vision_flag != True) and (vision_flag_old == False)):
+            rospy.loginfo("Starting target scanning")
+        elif((vision_flag != False) and (vision_flag_old == True)):
+            rospy.loginfo("Stopping target scanning")
+
         if (vision_flag):
-            rospy.loginfo_once("Starting target detection")
             # pre process
             img = cam.read()
             img = imutils.resize(img, width=_width)
-            img_disp = img.copy()
             
             blur = cv2.GaussianBlur(img, (7, 7), 0)
 
@@ -101,16 +120,24 @@ def dropzone_detect():
             if largest_circle_center is not None:
                 x = int(largest_circle_center[0] - _width/2)
                 y = int(height/2 - largest_circle_center[1])
+
+                # increase counter
                 hit_count = hit_count + 1
+                draw(img, center, radius, hit_count)
+                
                 #rospy.loginfo("x: {}".format(x))
                 #rospy.loginfo("y: {}".format(y))
 
-        if (hit_count > 2):
-            dropzone_service_client(x,y)
-            vision_flag = False
-            hit_count = 0
-        
+                if (hit_count > 2):
+                    dropzone_service_client(x,y)
+                    draw(img, center, radius, hit_count)
+                    hit_count = 0
+
+            else:
+                hit_count = 0
+
         rate.sleep()
+        old_vision_flag = vision_flag
 
 if __name__ == "__main__":
     try:

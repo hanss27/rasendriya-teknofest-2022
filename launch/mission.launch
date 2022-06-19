@@ -15,13 +15,25 @@
     <node name="vision_dropzone" pkg="rasendriya" type="vision_dropzone.py" args="$(arg camera_num)" output="screen"/>
 
     <!-- <param name="/rasendriya/dropping_altitude" value="15" /> -->
-    <param name="/rasendriya/focal_length/x" value="217.10032334" />
-    <param name="/rasendriya/focal_length/y" value="232.0753471" />
-
-    <param name="/rasendriya/wp_drop_first" value="7" />
-    <param name="/rasendriya/wp_drop_second" value="15" />
-    <param name="/rasendriya/wp_prepare_scan" value="6" />
     
-    <node name="mission_control" pkg ="rasendriya" type="mission_control" output="screen"/>
+    <node name="mission_control" pkg ="rasendriya" type="mission_control" output="screen">
+        <!-- camera pinhole model parameters -->
+        <param name="/rasendriya/camera/focal_length/x" value="217.10032334" />
+        <param name="/rasendriya/camera/focal_length/y" value="232.0753471" />
+        <param name="/rasendriya/camera/principal_point/x" value="78.03005229" />
+        <param name="/rasendriya/camera/principal_point/y" value="78.82465401" />
+
+        <!--
+        <param name="/rasendriya/camera/distortion/k1" value="-1.60790306e-01" />
+        <param name="/rasendriya/camera/distortion/k2" value="2.17275631e+00" />
+        <param name="/rasendriya/camera/distortion/k3" value="4.63549143e-03" />
+        <param name="/rasendriya/camera/distortion/k4" value="-9.89169203e-03" />
+        <param name="/rasendriya/camera/distortion/k5" value="-1.27702866e+01" />
+        -->
+
+        <param name="/rasendriya/wp_drop_first" value="7" />
+        <param name="/rasendriya/wp_drop_second" value="15" />
+        <param name="/rasendriya/wp_prepare_scan" value="6" />
+    </node>
     
 </launch>
