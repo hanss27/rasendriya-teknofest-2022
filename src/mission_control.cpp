@@ -195,12 +195,6 @@ int main(int argc, char **argv) {
 	while(ros::ok() && (waypoint_push.request.waypoints.size() == 0)) {
 		ros::spinOnce();
 		rate.sleep();
-
-		if(timeout_criterion(start_up, 8)) {
-			ROS_ERROR("Timeout. Failed to get WP");
-			ROS_ERROR("Exiting program");
-			return -1;
-		}
 	}
 	ROS_INFO("Number of loaded waypoints: %d", int(waypoint_push.request.waypoints.size()));
 	ROS_INFO("Waypoint load from FCU completed");
@@ -214,11 +208,6 @@ int main(int argc, char **argv) {
 		if(set_stream_rate_cli.call(stream_fcu)) {
 			ROS_INFO("Stream from FCU set!");
 			break;
-		}
-		else if(timeout_criterion(start_up, 15)) {
-			ROS_ERROR("Timeout. Failed to set FCU stream");
-			ROS_ERROR("Exiting program");
-			return -1;
 		}
 
 		ros::spinOnce();

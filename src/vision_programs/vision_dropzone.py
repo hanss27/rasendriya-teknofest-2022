@@ -21,6 +21,7 @@ def vision_flag_req(req):
     return SetBoolResponse(True, "Flag set to on. Scanning")
 
 def dropzone_detect():
+    global vision_flag
     # initialize ros node
     rospy.init_node('vision_dropzone')
     rospy.wait_for_service('/rasendriya/dropzone')
