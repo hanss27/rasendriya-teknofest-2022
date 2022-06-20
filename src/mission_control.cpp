@@ -190,7 +190,10 @@ int main(int argc, char **argv) {
 	ros::Subscriber gps_hdg_sub = nh.subscribe("/mavros/global_position/compass_hdg", 1, gps_hdg_callback);
 	ros::Subscriber vel_sub = nh.subscribe("/mavros/global_position/gp_vel", 1, vel_callback);
 
-	ros::Rate rate(25);
+	int loop_rate;
+	ros::param::get("/rasendriya/loop_rate", loop_rate);
+
+	ros::Rate rate(loop_rate);
 
 	int wp_prepare_scan;
 	int wp_drop[2];
@@ -219,7 +222,7 @@ int main(int argc, char **argv) {
 			break;
 		}
 		else {
-			ROS_INFO("Failed to stream from FCU set, retrying");
+			ROS_ERROR("Failed to stream from FCU set, retrying");
 		}
 
 		ros::spinOnce();
@@ -239,7 +242,7 @@ int main(int argc, char **argv) {
 					vision_started = true;
 				}
 				else {
-					ROS_INFO("Failed to start vision program, retrying");
+					ROS_ERROR("Failed to start vision program, retrying");
 				}
 			}
 		}
@@ -251,7 +254,7 @@ int main(int argc, char **argv) {
 					vision_started = false;
 				}
 				else {
-					ROS_INFO("Failed to stop vision program, retrying");
+					ROS_ERROR("Failed to stop vision program, retrying");
 				}
 			}
 		}
@@ -284,7 +287,7 @@ int main(int argc, char **argv) {
 					y_pixel = -3000;
 				}
 				else {
-					ROS_INFO("Failed to stop vision program, retrying");
+					ROS_ERROR("Failed to stop vision program, retrying");
 				}
 			}
 			else {

@@ -3,7 +3,9 @@
     <include file="$(find mavros)/launch/apm.launch"/>
     <rosparam param="mavros/system_id">1</rosparam>
     <rosparam param="mavros/component_id">240</rosparam>
-    <rosparam param="mavros/fcu_url">/dev/ttyACM0:115200</rosparam>
+    <rosparam param="mavros/fcu_url">/dev/ttyACM0:921600</rosparam>
+
+    <param name="/rasendriya/loop_rate" value="35" />
     
     <node name="test_waypoint" pkg="rasendriya" type="test_waypoint" output="screen"/>
     

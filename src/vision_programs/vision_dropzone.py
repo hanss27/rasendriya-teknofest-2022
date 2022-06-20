@@ -42,8 +42,10 @@ def dropzone_detect():
     rospy.init_node('vision_dropzone')
     rospy.wait_for_service('/rasendriya/dropzone')
 
+    loop_rate = rospy.get_param('/rasendriya/loop_rate')
+
     # initialize ros publisher
-    rate = rospy.Rate(35)
+    rate = rospy.Rate(loop_rate)
 
     hit_count = 0
     x = -3000
