@@ -5,9 +5,13 @@
     <rosparam param="mavros/component_id">240</rosparam>
     <rosparam param="mavros/fcu_url">/dev/ttyACM0:921600</rosparam>
 
+    <param name="/rasendriya/loop_rate" value="35" />
+
     <arg name="camera_num" default="0" />
     <node name="vision_dropzone" pkg="rasendriya" type="vision_dropzone.py" args="$(arg camera_num)" output="screen"/>    
     
-    <node name="test_servo" pkg ="rasendriya" type="test_servo" output="screen"/>
-    
+    <node name="test_servo" pkg ="rasendriya" type="test_servo" output="screen">
+        <param name="/rasendriya/testing/servo_pwm/7" value="1600" />
+        <param name="/rasendriya/testing/servo_pwm/8" value="1600" />
+    </node>
 </launch>
