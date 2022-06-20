@@ -35,7 +35,6 @@ def draw(_img, _ctr, _rad, _hit_cnt):
     else:
         cv2.imwrite(f'scan_{_hit_cnt}.jpg', _img)
 
-    return _img
 
 def dropzone_detect():
     global vision_flag, old_vision_flag
