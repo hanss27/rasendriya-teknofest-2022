@@ -118,15 +118,14 @@ float calc_projectile_distance(const float& _drop_alt) {
 // camera transformation API (pinhole model)
 void transform_camera(float& _X_meter, float& _Y_meter) {
 	double focal_length_x, focal_length_y, principal_point_x, principal_point_y;
-	double k1, k2, k3, k4, k5;
 
 	ros::param::get("/rasendriya/camera/focal_length/x", focal_length_x);
 	ros::param::get("/rasendriya/camera/focal_length/x", focal_length_x);
 	ros::param::get("/rasendriya/camera/principal_point/x", principal_point_x);
 	ros::param::get("/rasendriya/camera/principal_point/y", principal_point_y);
 
-	_X_meter = focal_length_x/alt*x_pixel + principal_point_x;
-	_Y_meter = focal_length_y/alt*y_pixel + principal_point_y;
+	_X_meter = alt*x_pixel/focal_length_x - principal_point_x;
+	_Y_meter = alt*y_pixel/focal_length_y - principal_point_y;
 }
 
 // coordinate calculator API
