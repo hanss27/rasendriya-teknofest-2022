@@ -37,7 +37,7 @@ def draw(_img, _ctr, _rad, _hit_cnt):
 
 
 def dropzone_detect():
-    global vision_flag, old_vision_flag
+    global vision_flag, vision_flag_old
     # initialize ros node
     rospy.init_node('vision_dropzone')
     rospy.wait_for_service('/rasendriya/dropzone')
@@ -78,9 +78,10 @@ def dropzone_detect():
         
         rospy.loginfo_once("Vision program ready")
 
-        if((vision_flag != True) and (vision_flag_old == False)):
+        if((vision_flag == True) and (vision_flag_old == False)):
             rospy.loginfo("Starting target scanning")
-        elif((vision_flag != False) and (vision_flag_old == True)):
+            
+        elif((vision_flag == False) and (vision_flag_old == True)):
             rospy.loginfo("Stopping target scanning")
 
         if (vision_flag):
@@ -136,9 +137,10 @@ def dropzone_detect():
 
             else:
                 hit_count = 0
-
+		
+        vision_flag_old = vision_flag
         rate.sleep()
-        old_vision_flag = vision_flag
+        
 
 if __name__ == "__main__":
     try:
