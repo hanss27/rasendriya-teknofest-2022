@@ -112,6 +112,7 @@ float degrees(const float& _rad) {
 
 float calc_projectile_distance(const float& _drop_alt) {
 	float _drop_offset = vel_y*sqrt(2*_drop_alt/gravity);
+	ROS_INFO("Speed: %f | Height: %f | Drop distance: %f", vel_y, _drop_alt, _drop_offset);
 	return _drop_offset;
 }
 
@@ -141,16 +142,12 @@ void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_of
 	transform_camera(X_meter, Y_meter);
 
 	r_dist = sqrt(pow(X_meter, 2) + pow(Y_meter + _drop_offset, 2));
+	ROS_INFO("x: %f | y: %f | total distance: %f", X_meter, Y_meter, r_dist);
 	cam_angle = radians(atan2(X_meter, Y_meter));
 
 	// using haversine law
 	_tgt_latx = degrees(asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg+cam_angle)));
 	_tgt_lony = degrees(lon + atan2(sin(hdg+cam_angle)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx))));
-}
-
-bool timeout_criterion(const ros::Time& start, const float& time) {
-	if(ros::Time::now() - start > ros::Duration(time)) return true;
-	else return false;
 }
 
 // MAIN FUNCTION //
@@ -161,7 +158,6 @@ int main(int argc, char **argv) {
 	float dropping_altitude;
 
 	bool vision_started = false;
-	bool send_coor 		= true;
 
 	mavros_msgs::WaypointPull waypoint_pull;
 
@@ -188,9 +184,12 @@ int main(int argc, char **argv) {
 	ros::Subscriber alt_sub = nh.subscribe("/mavros/altitude", 1, alt_callback);
 	ros::Subscriber gps_hdg_sub = nh.subscribe("/mavros/global_position/compass_hdg", 1, gps_hdg_callback);
 	ros::Subscriber vel_sub = nh.subscribe("/mavros/global_position/gp_vel", 1, vel_callback);
+	
+	ROS_INFO("Loading ROS params");
 
 	int loop_rate;
 	ros::param::get("/rasendriya/loop_rate", loop_rate);
+	ROS_INFO("Loop rate used: %d", loop_rate);
 
 	ros::Rate rate(loop_rate);
 
@@ -199,8 +198,11 @@ int main(int argc, char **argv) {
 	ros::param::get("/rasendriya/wp_drop_first", wp_drop[0]);
 	ros::param::get("/rasendriya/wp_drop_second", wp_drop[1]);
 	ros::param::get("/rasendriya/wp_prepare_scan", wp_prepare_scan);
-
-	ros::Time start_up  = ros::Time::now();
+	ROS_INFO("Start scanning waypoint: %d", wp_prepare_scan);
+	ROS_INFO("First dropping waypoint: %d", wp_drop[0]);
+	ROS_INFO("Second dropping waypoint: %d", wp_drop[1]);
+	
+	ROS_INFO("ROS params loading completed");
 
 	// first WP loading from FCU. Ensures that companion computer has the same waypoints as FCU
 	while(ros::ok() && (waypoint_push.request.waypoints.size() == 0)) {
@@ -208,7 +210,6 @@ int main(int argc, char **argv) {
 		rate.sleep();
 	}
 	ROS_INFO("Number of loaded waypoints: %d", int(waypoint_push.request.waypoints.size()));
-	ROS_INFO("Waypoint load from FCU completed");
 
 	// set stream rate
 	while(ros::ok()) {
@@ -275,13 +276,12 @@ int main(int argc, char **argv) {
 				ROS_INFO("WP: %d | Latitude: %f | Longitude: %f", wp_drop[i] - 1, tgt_latx, tgt_lony);
 			}
 
-			if(waypoint_push_cli.call(waypoint_push) && waypoint_pull_cli.call(waypoint_pull) && send_coor == true){
+			if(waypoint_push_cli.call(waypoint_push) && waypoint_pull_cli.call(waypoint_pull)){
 				ROS_INFO("Image processed coordinates sent!");
 				vision_flag.request.data = false;
 				if(vision_flag_cli.call(vision_flag)) {
 					ROS_INFO("Stopping vision program");
 					vision_started = false;
-					send_coor = false;
 					x_pixel = -3000;
 					y_pixel = -3000;
 				}
