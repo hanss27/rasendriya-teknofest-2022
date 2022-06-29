@@ -117,14 +117,19 @@ float calc_projectile_distance(const float& _drop_alt) {
 }
 
 // camera transformation API (pinhole model)
-void transform_camera(float& _X_meter, float& _Y_meter) {
+void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 	double focal_length_x, focal_length_y, principal_point_x, principal_point_y;
-
+        
+        __nh.getParam("/mission_control/rasendriya/camera/focal_length/x", focal_length_x);
+        __nh.getParam("/mission_control/rasendriya/camera/focal_length/y", focal_length_y);
+        __nh.getParam("/mission_control/rasendriya/camera/principal_point/x", principal_point_x);
+        __nh.getParam("/mission_control/rasendriya/camera/principal_point/y", principal_point_y);
+        /*
 	ros::param::get("/rasendriya/camera/focal_length/x", focal_length_x);
 	ros::param::get("/rasendriya/camera/focal_length/x", focal_length_x);
 	ros::param::get("/rasendriya/camera/principal_point/x", principal_point_x);
 	ros::param::get("/rasendriya/camera/principal_point/y", principal_point_y);
-
+        */
 	_X_meter = alt*x_pixel/focal_length_x - principal_point_x;
 	_Y_meter = alt*y_pixel/focal_length_y - principal_point_y;
 }
@@ -132,14 +137,14 @@ void transform_camera(float& _X_meter, float& _Y_meter) {
 // coordinate calculator API
 #define R_earth 6378.1*1e3
 
-void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset){	
+void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh){	
 	float hdg = radians(gps_hdg);
 	double lat = radians(gps_lat);
 	double lon = radians(gps_long);
 	
 	float X_meter, Y_meter, cam_angle, r_dist;
 
-	transform_camera(X_meter, Y_meter);
+	transform_camera(X_meter, Y_meter, _nh);
 
 	r_dist = sqrt(pow(X_meter, 2) + pow(Y_meter + _drop_offset, 2));
 	ROS_INFO("x: %f | y: %f | total distance: %f", X_meter, Y_meter, r_dist);
@@ -195,9 +200,13 @@ int main(int argc, char **argv) {
 
 	int wp_prepare_scan;
 	int wp_drop[2];
-	ros::param::get("/rasendriya/wp_drop_first", wp_drop[0]);
-	ros::param::get("/rasendriya/wp_drop_second", wp_drop[1]);
-	ros::param::get("/rasendriya/wp_prepare_scan", wp_prepare_scan);
+        ros::Duration(2.0).sleep();
+        nh.getParam("/mission_control/rasendriya/wp_drop_first", wp_drop[0]);
+	nh.getParam("/mission_control/rasendriya/wp_drop_second", wp_drop[1]);
+        nh.getParam("/mission_control/rasendriya/wp_prepare_scan", wp_prepare_scan);
+        //ros::param::get("/rasendriya/wp_drop_first", wp_drop[0]);
+	//ros::param::get("/rasendriya/wp_drop_second", wp_drop[1]);
+	//ros::param::get("/rasendriya/wp_prepare_scan", wp_prepare_scan);
 	ROS_INFO("Start scanning waypoint: %d", wp_prepare_scan);
 	ROS_INFO("First dropping waypoint: %d", wp_drop[0]);
 	ROS_INFO("Second dropping waypoint: %d", wp_drop[1]);
@@ -266,7 +275,7 @@ int main(int argc, char **argv) {
 
 			dropping_altitude = waypoint_push.request.waypoints[wp_drop[0] - 1].z_alt;
 
-			calc_drop_coord(tgt_latx, tgt_lony, calc_projectile_distance(dropping_altitude));
+			calc_drop_coord(tgt_latx, tgt_lony, calc_projectile_distance(dropping_altitude), nh);
 			
 			// change WP NAV directly before dropping
 			ROS_INFO("Updating waypoints");
