@@ -53,9 +53,12 @@ int main(int argc, char **argv) {
 	ros::ServiceServer dropzone_service = nh.advertiseService("/rasendriya/dropzone", dropzone_target_callback);
 
 	int servo_pwm[2];
+	nh.getParam("/test_servo/rasendriya/testing/servo_pwm/7", servo_pwm[0]);
+	nh.getParam("/test_servo/rasendriya/testing/servo_pwm/8", servo_pwm[1]);
+	/*
 	ros::param::get("/rasendriya/testing/servo_pwm/7", servo_pwm[0]);
 	ros::param::get("/rasendriya/testing/servo_pwm/8", servo_pwm[1]);
-	
+	*/
 	ros::Duration(5.0).sleep();
 
 	// set stream rate
