@@ -33,6 +33,7 @@ void waypoint_reached_callback(const mavros_msgs::WaypointReached& wp_reached){
 
 float x_pixel = -3000;
 float y_pixel = -3000;
+float gps_alt;
 float alt, gps_hdg;
 double gps_long, gps_lat;
 float vel_y, vel_z;
@@ -50,6 +51,7 @@ bool dropzone_target_callback(rasendriya::Dropzone::Request& dropzone_req, rasen
 void gps_callback(const sensor_msgs::NavSatFix& gps_data){
 	gps_long = gps_data.longitude;
 	gps_lat = gps_data.latitude;
+	gps_alt = gps_data.altitude;
 }
 
 void alt_callback(const mavros_msgs::Altitude& alt_data){
@@ -99,11 +101,11 @@ void servo_drop_wp(const int& servo_ch, const int& wp_drop_num, mavros_msgs::Way
 
 // mathematical conversion APIs because c++ library doesn't have it. math.h sucks 
 
-float radians(const float& _deg) {
+double radians(const double& _deg) {
 	return _deg*(M_PI/180);
 } 
 
-float degrees(const float& _rad) {
+double degrees(const double& _rad) {
 	return _rad*(180/M_PI);
 }
 
@@ -120,25 +122,22 @@ float calc_projectile_distance(const float& _drop_alt) {
 void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 	double focal_length_x, focal_length_y, principal_point_x, principal_point_y;
         
-        __nh.getParam("/mission_control/rasendriya/camera/focal_length/x", focal_length_x);
-        __nh.getParam("/mission_control/rasendriya/camera/focal_length/y", focal_length_y);
-        __nh.getParam("/mission_control/rasendriya/camera/principal_point/x", principal_point_x);
-        __nh.getParam("/mission_control/rasendriya/camera/principal_point/y", principal_point_y);
-        /*
-	ros::param::get("/rasendriya/camera/focal_length/x", focal_length_x);
-	ros::param::get("/rasendriya/camera/focal_length/x", focal_length_x);
-	ros::param::get("/rasendriya/camera/principal_point/x", principal_point_x);
-	ros::param::get("/rasendriya/camera/principal_point/y", principal_point_y);
-        */
-	_X_meter = alt*x_pixel/focal_length_x - principal_point_x;
-	_Y_meter = alt*y_pixel/focal_length_y - principal_point_y;
+	__nh.getParam("/mission_control/rasendriya/camera/focal_length/x", focal_length_x);
+	__nh.getParam("/mission_control/rasendriya/camera/focal_length/y", focal_length_y);
+	__nh.getParam("/mission_control/rasendriya/camera/principal_point/x", principal_point_x);
+	__nh.getParam("/mission_control/rasendriya/camera/principal_point/y", principal_point_y);
+
+	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, alt);
+
+	_X_meter = (x_pixel - principal_point_x*alt)/focal_length_x;
+	_Y_meter = (y_pixel - principal_point_y*alt)/focal_length_y;
 }
 
 // coordinate calculator API
-#define R_earth 6378.1*1e3
+#define R_earth 6378137 // in meters
 
 void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh){	
-	float hdg = radians(gps_hdg);
+	float hdg = radians(gps_hdg - 180);
 	double lat = radians(gps_lat);
 	double lon = radians(gps_long);
 	
@@ -147,7 +146,7 @@ void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_of
 	transform_camera(X_meter, Y_meter, _nh);
 
 	r_dist = sqrt(pow(X_meter, 2) + pow(Y_meter + _drop_offset, 2));
-	ROS_INFO("x: %f | y: %f | total distance: %f", X_meter, Y_meter, r_dist);
+	ROS_INFO("X: %f | Y: %f | Total distance: %f | Heading: %f", X_meter, Y_meter, r_dist, hdg);
 	cam_angle = radians(atan2(X_meter, Y_meter));
 
 	// using haversine law
@@ -200,13 +199,10 @@ int main(int argc, char **argv) {
 
 	int wp_prepare_scan;
 	int wp_drop[2];
-        ros::Duration(2.0).sleep();
-        nh.getParam("/mission_control/rasendriya/wp_drop_first", wp_drop[0]);
+  
+	nh.getParam("/mission_control/rasendriya/wp_drop_first", wp_drop[0]);
 	nh.getParam("/mission_control/rasendriya/wp_drop_second", wp_drop[1]);
-        nh.getParam("/mission_control/rasendriya/wp_prepare_scan", wp_prepare_scan);
-        //ros::param::get("/rasendriya/wp_drop_first", wp_drop[0]);
-	//ros::param::get("/rasendriya/wp_drop_second", wp_drop[1]);
-	//ros::param::get("/rasendriya/wp_prepare_scan", wp_prepare_scan);
+	nh.getParam("/mission_control/rasendriya/wp_prepare_scan", wp_prepare_scan);
 	ROS_INFO("Start scanning waypoint: %d", wp_prepare_scan);
 	ROS_INFO("First dropping waypoint: %d", wp_drop[0]);
 	ROS_INFO("Second dropping waypoint: %d", wp_drop[1]);
@@ -244,7 +240,7 @@ int main(int argc, char **argv) {
 				
 		// turn on vision node when wp3 has reached
 		if(!vision_started) {
-			if(waypoint_reached == wp_prepare_scan - 1) {
+			if(waypoint_reached == wp_prepare_scan) {
 				vision_flag.request.data = true;
 				if(vision_flag_cli.call(vision_flag)) {
 					ROS_INFO("Starting vision program");
@@ -256,7 +252,7 @@ int main(int argc, char **argv) {
 			}
 		}
 		else {
-			if(waypoint_reached == wp_prepare_scan + 1) {
+			if( (waypoint_reached == wp_prepare_scan + 1) && vision_flag.request.data) {
 				vision_flag.request.data = false;
 				if(vision_flag_cli.call(vision_flag)) {
 					ROS_INFO("Final scanning waypoint reached. Stopping vision program");
@@ -273,26 +269,26 @@ int main(int argc, char **argv) {
 			
 			ROS_INFO("DROPZONE TARGET ACQUIRED. EXECUTING DROPPING SEQUENCE");
 
-			dropping_altitude = waypoint_push.request.waypoints[wp_drop[0] - 1].z_alt;
+			dropping_altitude = waypoint_push.request.waypoints[wp_drop[0]].z_alt;
 
 			calc_drop_coord(tgt_latx, tgt_lony, calc_projectile_distance(dropping_altitude), nh);
 			
 			// change WP NAV directly before dropping
 			ROS_INFO("Updating waypoints");
 			for(int i = 0; i <= 1; i++) {
-				waypoint_push.request.waypoints[wp_drop[i] - 1].x_lat = tgt_latx;
-				waypoint_push.request.waypoints[wp_drop[i] - 1].y_long = tgt_lony;
-				ROS_INFO("WP: %d | Latitude: %f | Longitude: %f", wp_drop[i] - 1, tgt_latx, tgt_lony);
+				waypoint_push.request.waypoints[wp_drop[i]].x_lat = int(tgt_latx * 1e7); // 1e7 is mavlink coordinate integer format
+				waypoint_push.request.waypoints[wp_drop[i]].y_long = int(tgt_lony * 1e7);
+				ROS_INFO("WP: %d | Latitude: %f | Longitude: %f", wp_drop[i], tgt_latx, tgt_lony);
 			}
 
 			if(waypoint_push_cli.call(waypoint_push) && waypoint_pull_cli.call(waypoint_pull)){
 				ROS_INFO("Image processed coordinates sent!");
 				vision_flag.request.data = false;
 				if(vision_flag_cli.call(vision_flag)) {
-					ROS_INFO("Stopping vision program");
-					vision_started = false;
+					ROS_INFO("Stopping vision program. Hibernating");
 					x_pixel = -3000;
 					y_pixel = -3000;
+					waypoint_reached =+ 1;
 				}
 				else {
 					ROS_ERROR("Failed to stop vision program, retrying");
