@@ -36,7 +36,7 @@ float y_pixel = -3000;
 float gps_alt;
 float alt, gps_hdg;
 double gps_long, gps_lat;
-float vel_y, vel_z;
+float vel_x, vel_y, vel_z;
 bool mission_flag;
 
 mavros_msgs::WaypointPush waypoint_push;
@@ -63,7 +63,8 @@ void gps_hdg_callback(const std_msgs::Float64& gps_hdg_data){
 }
 
 void vel_callback(const geometry_msgs::TwistStamped& vel_data){
-	vel_y = vel_data.twist.linear.y;
+	vel_x = vel_data.twist.linear.y;
+        vel_y = vel_data.twist.linear.x; // Flip vel_x with vel_y
 	vel_z = vel_data.twist.linear.z;
 }
 
@@ -187,7 +188,7 @@ int main(int argc, char **argv) {
 	ros::Subscriber gps_coordinate_sub = nh.subscribe("/mavros/global_position/global", 1, gps_callback);
 	ros::Subscriber alt_sub = nh.subscribe("/mavros/altitude", 1, alt_callback);
 	ros::Subscriber gps_hdg_sub = nh.subscribe("/mavros/global_position/compass_hdg", 1, gps_hdg_callback);
-	ros::Subscriber vel_sub = nh.subscribe("/mavros/global_position/gp_vel", 1, vel_callback);
+	ros::Subscriber vel_sub = nh.subscribe("/mavros/local_position/velocity_body", 1, vel_callback);
 	
 	ROS_INFO("Loading ROS params");
 
@@ -236,8 +237,7 @@ int main(int argc, char **argv) {
 
 	while(ros::ok()) {
 		
-		ROS_INFO_ONCE("Mission program ready");
-				
+		ROS_INFO_ONCE("Mission program ready");		
 		// turn on vision node when wp3 has reached
 		if(!vision_started) {
 			if(waypoint_reached == wp_prepare_scan) {
