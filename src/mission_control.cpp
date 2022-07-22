@@ -63,9 +63,10 @@ void gps_hdg_callback(const std_msgs::Float64& gps_hdg_data){
 }
 
 void vel_callback(const geometry_msgs::TwistStamped& vel_data){
+	// ENU | NED conversion
 	vel_x = vel_data.twist.linear.y;
-        vel_y = vel_data.twist.linear.x; // Flip vel_x with vel_y
-	vel_z = vel_data.twist.linear.z;
+  vel_y = vel_data.twist.linear.x;
+	vel_z = -vel_data.twist.linear.z;
 }
 
 void waypoint_list_callback(const mavros_msgs::WaypointList& wplist) {
