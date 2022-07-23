@@ -33,10 +33,10 @@ def draw(_img, _ctr, _rad, _hit_cnt):
     cv2.circle(_img, _ctr, _rad, (0,255,0), 3)
 	
     if (_hit_cnt > 2):
-        cv2.imwrite(os.path.join(calib_imgs_path,'target.jpg'), _img)
+        cv2.imwrite(os.path.join(img_path,'target.jpg'), _img)
     else:
 	trgt_img = "scan_{}.jpg".format(_hit_cnt)
-        cv2.imwrite(os.path.join(calib_imgs_path,trgt_img), _img)
+        cv2.imwrite(os.path.join(img_path,trgt_img), _img)
     rospy.loginfo("Image Written!")
 
 def dropzone_detect():
