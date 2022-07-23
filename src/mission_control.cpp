@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
 		ROS_INFO_ONCE("Mission program ready");		
 		// turn on vision node when wp3 has reached
 		if(!vision_started) {
-			if(waypoint_reached == wp_prepare_scan) {
+			if(waypoint_reached == (wp_prepare_scan - 1)) {
 				vision_flag.request.data = true;
 				if(vision_flag_cli.call(vision_flag)) {
 					ROS_INFO("Starting vision program");
@@ -277,8 +277,8 @@ int main(int argc, char **argv) {
 			// change WP NAV directly before dropping
 			ROS_INFO("Updating waypoints");
 			for(int i = 0; i <= 1; i++) {
-				waypoint_push.request.waypoints[wp_drop[i]].x_lat = int(tgt_latx * 1e7); // 1e7 is mavlink coordinate integer format
-				waypoint_push.request.waypoints[wp_drop[i]].y_long = int(tgt_lony * 1e7);
+				waypoint_push.request.waypoints[wp_drop[i]].x_lat = tgt_latx;
+				waypoint_push.request.waypoints[wp_drop[i]].y_long = tgt_lony;
 				ROS_INFO("WP: %d | Latitude: %f | Longitude: %f", wp_drop[i], tgt_latx, tgt_lony);
 			}
 
