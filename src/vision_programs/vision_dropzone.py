@@ -29,12 +29,12 @@ def draw(_img, _ctr, _rad, _hit_cnt):
         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
     # circle outline
     cv2.circle(_img, _ctr, _rad, (0,255,0), 3)
-
+	
     if (_hit_cnt > 2):
         cv2.imwrite('target.jpg', _img)
     else:
         cv2.imwrite(f'scan_{_hit_cnt}.jpg', _img)
-
+    rospy.loginfo("Image Written!")
 
 def dropzone_detect():
     global vision_flag, vision_flag_old
@@ -131,8 +131,8 @@ def dropzone_detect():
                 #rospy.loginfo("y: {}".format(y))
 
                 if (hit_count > 2):
-                    dropzone_service_client(x,y)
                     draw(img, center, radius, hit_count)
+		    dropzone_service_client(x,y)
                     hit_count = 0
 
             else:
