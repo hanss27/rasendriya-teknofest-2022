@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import imutils
 import argparse
+import os
 from imutils.video import VideoStream
 from std_srvs.srv import SetBool, SetBoolResponse
 
@@ -23,6 +24,7 @@ def vision_flag_req(req):
     return SetBoolResponse(True, "Flag set to on. Scanning")
 
 def draw(_img, _ctr, _rad, _hit_cnt):
+    img_path = os.getcwd()
     # draw and save image
     cv2.circle(_img, _ctr, 1, (255,255,255), 3)
     cv2.putText(_img, "center", (_ctr[0] - 20, _ctr[1] - 20),
@@ -31,9 +33,10 @@ def draw(_img, _ctr, _rad, _hit_cnt):
     cv2.circle(_img, _ctr, _rad, (0,255,0), 3)
 	
     if (_hit_cnt > 2):
-        cv2.imwrite('target.jpg', _img)
+        cv2.imwrite(os.path.join(calib_imgs_path,'target.jpg'), _img)
     else:
-        cv2.imwrite(f'scan_{_hit_cnt}.jpg', _img)
+	trgt_img = "scan_{}.jpg".format(_hit_cnt)
+        cv2.imwrite(os.path.join(calib_imgs_path,trgt_img), _img)
     rospy.loginfo("Image Written!")
 
 def dropzone_detect():
