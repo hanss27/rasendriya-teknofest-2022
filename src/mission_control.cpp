@@ -245,6 +245,7 @@ int main(int argc, char **argv) {
 				vision_flag.request.data = true;
 				if(vision_flag_cli.call(vision_flag)) {
 					ROS_INFO("Starting vision program");
+					ros::Duration(2.5).sleep();
 					vision_started = true;
 				}
 				else {
