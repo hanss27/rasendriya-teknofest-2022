@@ -32,11 +32,11 @@ def draw(_img, _ctr, _rad, _hit_cnt):
     # circle outline
     cv2.circle(_img, _ctr, _rad, (0,255,0), 3)
 	
-    if (_hit_cnt > 2):
-        cv2.imwrite(os.path.join(img_path,'target.jpg'), _img)
+    if (_hit_cnt > 10):
+        cv2.imwrite("/home/ubuntu/detected.jpg", _img)
     else:
         trgt_img = "scan_{}.jpg".format(str(_hit_cnt))
-        cv2.imwrite(os.path.join(img_path,trgt_img), _img)
+        cv2.imwrite(os.path.join("/home/ubuntu/", trgt_img), _img)
     rospy.loginfo("Image Written!")
 
 def dropzone_detect():
@@ -101,8 +101,8 @@ def dropzone_detect():
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
             # circle detection using hough transform
-            circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=44,
-                param1=148, param2=32, #23
+            circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=131,
+                param1=196, param2=32, #23
                 minRadius=0, maxRadius=_width)
 
             largest_circle_radius = 0
@@ -133,7 +133,7 @@ def dropzone_detect():
                 #rospy.loginfo("x: {}".format(x))
                 #rospy.loginfo("y: {}".format(y))
 
-                if (hit_count > 2):
+                if (hit_count > 10):
                     draw(img, center, radius, hit_count)
                     dropzone_service_client(x,y)
                     hit_count = 0

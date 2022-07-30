@@ -103,7 +103,7 @@ def dropzone_detect():
 
     while True:
         # pre process
-        img = cam.read()
+        img = cv2.imread("2.jpg")#cam.read() 
         img = imutils.resize(img, width=height)
         img_disp = img.copy()
         blur = cv2.GaussianBlur(img, (7, 7), 0)
