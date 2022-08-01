@@ -131,8 +131,8 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 
 	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, gps_alt);
 
-	_X_meter = (x_pixel - principal_point_x*alt)/focal_length_x;
-	_Y_meter = (y_pixel - principal_point_y*alt)/focal_length_y;
+	_X_meter = (x_pixel - principal_point_x*gps_alt)/focal_length_x;
+	_Y_meter = (y_pixel - principal_point_y*gps_alt)/focal_length_y;
 }
 
 // coordinate calculator API
