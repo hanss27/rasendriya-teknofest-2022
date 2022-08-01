@@ -10,6 +10,7 @@ from std_srvs.srv import SetBool, SetBoolResponse
 
 vision_flag = False
 vision_flag_old = False
+hit_count_thres = 0
 
 # Sending Dropzone Service
 def dropzone_service_client(x,y):
@@ -24,6 +25,7 @@ def vision_flag_req(req):
     return SetBoolResponse(True, "Flag set to on. Scanning")
 
 def draw(_img, _ctr, _rad, _hit_cnt):
+    global hit_count_thres
     img_path = os.getcwd()
     # draw and save image
     cv2.circle(_img, _ctr, 1, (255,255,255), 3)
@@ -32,7 +34,7 @@ def draw(_img, _ctr, _rad, _hit_cnt):
     # circle outline
     cv2.circle(_img, _ctr, _rad, (0,255,0), 3)
 	
-    if (_hit_cnt > 10):
+    if (_hit_cnt > hit_count_thres):
         cv2.imwrite("/home/ubuntu/detected.jpg", _img)
     else:
         trgt_img = "scan_{}.jpg".format(str(_hit_cnt))
@@ -46,6 +48,7 @@ def dropzone_detect():
     rospy.wait_for_service('/rasendriya/dropzone')
 
     loop_rate = rospy.get_param('/rasendriya/loop_rate')
+    hit_count_thres = rospy.get_param('/rasendriya/hit_count_thres')
 
     # initialize ros publisher
     rate = rospy.Rate(loop_rate)
@@ -133,10 +136,10 @@ def dropzone_detect():
                 #rospy.loginfo("x: {}".format(x))
                 #rospy.loginfo("y: {}".format(y))
 
-                if (hit_count > 10):
+                if (hit_count > hit_count_thres):
                     draw(img, center, radius, hit_count)
                     dropzone_service_client(x,y)
-                    hit_count = 0
+                    vision_flag = False
 
             else:
                 hit_count = 0
