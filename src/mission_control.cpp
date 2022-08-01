@@ -65,7 +65,7 @@ void gps_hdg_callback(const std_msgs::Float64& gps_hdg_data){
 void vel_callback(const geometry_msgs::TwistStamped& vel_data){
 	// ENU | NED conversion
 	vel_x = vel_data.twist.linear.y;
-  vel_y = vel_data.twist.linear.x;
+	vel_y = vel_data.twist.linear.x;
 	vel_z = -vel_data.twist.linear.z;
 }
 
@@ -129,7 +129,7 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 	__nh.getParam("/mission_control/rasendriya/camera/principal_point/x", principal_point_x);
 	__nh.getParam("/mission_control/rasendriya/camera/principal_point/y", principal_point_y);
 
-	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, alt);
+	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, gps_alt);
 
 	_X_meter = (x_pixel - principal_point_x*alt)/focal_length_x;
 	_Y_meter = (y_pixel - principal_point_y*alt)/focal_length_y;
@@ -138,8 +138,8 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 // coordinate calculator API
 #define R_earth 6378137 // in meters
 
-void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh){	
-	float hdg = radians(gps_hdg - 180);
+void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh) {	
+	float hdg = radians(gps_hdg);
 	double lat = radians(gps_lat);
 	double lon = radians(gps_long);
 	
@@ -148,12 +148,12 @@ void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_of
 	transform_camera(X_meter, Y_meter, _nh);
 
 	r_dist = sqrt(pow(X_meter, 2) + pow(Y_meter + _drop_offset, 2));
-	ROS_INFO("X: %f | Y: %f | Total distance: %f | Heading: %f", X_meter, Y_meter, r_dist, hdg);
+	ROS_INFO("X: %f | Y: %f | Total distance: %f | Heading: %f", X_meter, Y_meter, r_dist, degrees(hdg) );
 	cam_angle = radians(atan2(X_meter, Y_meter));
 
 	// using haversine law
-	_tgt_latx = degrees(asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg+cam_angle)));
-	_tgt_lony = degrees(lon + atan2(sin(hdg+cam_angle)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx))));
+	_tgt_latx = degrees(asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos((hdg-radians(180)) + cam_angle)));
+	_tgt_lony = degrees(lon + atan2(sin((hdg-radians(180)) + cam_angle)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth) - sin(lat)*sin(_tgt_latx))));
 }
 
 // MAIN FUNCTION //
@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
 			}
 		}
 		else {
-			if( (waypoint_reached == wp_prepare_scan + 1) && vision_flag.request.data) {
+			if( (waypoint_reached == (wp_prepare_scan + 1) ) && vision_flag.request.data) {
 				vision_flag.request.data = false;
 				if(vision_flag_cli.call(vision_flag)) {
 					ROS_INFO("Final scanning waypoint reached. Stopping vision program");
