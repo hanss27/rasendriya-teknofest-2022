@@ -164,6 +164,7 @@ int main(int argc, char **argv) {
 	float dropping_altitude;
 
 	bool vision_started = false;
+	bool scan_completed = false;
 
 	mavros_msgs::WaypointPull waypoint_pull;
 
@@ -267,7 +268,7 @@ int main(int argc, char **argv) {
 		}
 		
 		// dropzone confirmed
-		if((x_pixel != -3000) && (y_pixel != -3000)){
+		if((x_pixel != -3000) && (y_pixel != -3000) && (scan_completed == false)) {
 			
 			ROS_INFO("DROPZONE TARGET ACQUIRED. EXECUTING DROPPING SEQUENCE");
 
@@ -290,7 +291,7 @@ int main(int argc, char **argv) {
 					ROS_INFO("Stopping vision program. Hibernating");
 					x_pixel = -3000;
 					y_pixel = -3000;
-					waypoint_reached =+ 1;
+					scan_completed = true;
 				}
 				else {
 					ROS_ERROR("Failed to stop vision program, retrying");
