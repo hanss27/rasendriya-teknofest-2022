@@ -95,7 +95,7 @@ def dropzone_detect():
             img = cam.read()
             img = imutils.resize(img, width=_width)
             
-            blur = cv2.GaussianBlur(img, (9, 9), 0)
+            blur = cv2.GaussianBlur(img, (5, 5), 0)
 
             # color filtering
             frame = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
