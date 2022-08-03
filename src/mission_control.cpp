@@ -131,10 +131,10 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 	__nh.getParam("/mission_control/rasendriya/camera/principal_point/x", principal_point_x);
 	__nh.getParam("/mission_control/rasendriya/camera/principal_point/y", principal_point_y);
 
-	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, alt);
+	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, gps_alt);
 
-	_X_meter = (x_pixel - principal_point_x*alt)/focal_length_x;
-	_Y_meter = (y_pixel - principal_point_y*alt)/focal_length_y;
+	_X_meter = (x_pixel - principal_point_x*15)/focal_length_x;
+	_Y_meter = (y_pixel - principal_point_y*15)/focal_length_y;
 }
 
 // coordinate calculator API
