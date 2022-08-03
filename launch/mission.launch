@@ -21,10 +21,10 @@
     
     <node name="mission_control" pkg ="rasendriya" type="mission_control" output="screen">
         <!-- camera pinhole model parameters -->
-        <param name="/rasendriya/camera/focal_length/x" value="785.68162035" />
-        <param name="/rasendriya/camera/focal_length/y" value="784.47905593" />
-        <param name="/rasendriya/camera/principal_point/x" value="297.94890814" />
-        <param name="/rasendriya/camera/principal_point/y" value="255.39172348" />
+        <param name="/rasendriya/camera/focal_length/x" value="334.92037641" />
+        <param name="/rasendriya/camera/focal_length/y" value="339.2902151" />
+        <param name="/rasendriya/camera/principal_point/x" value="96.54226547" />
+        <param name="/rasendriya/camera/principal_point/y" value="86.7182241" />
 
         <!--
         <param name="/rasendriya/camera/distortion/k1" value="-1.60790306e-01" />
