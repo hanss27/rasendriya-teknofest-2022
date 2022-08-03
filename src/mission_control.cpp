@@ -21,6 +21,8 @@
 #include <math.h>
 //#include <bits/stdc++.h>
 
+#define R_earth 6378137 // in meters
+
 // REMINDER: wp_num STARTS FROM 0
 
 int waypoint_reached = 0;
@@ -65,7 +67,7 @@ void gps_hdg_callback(const std_msgs::Float64& gps_hdg_data){
 void vel_callback(const geometry_msgs::TwistStamped& vel_data){
 	// ENU | NED conversion
 	vel_x = vel_data.twist.linear.y;
-	vel_y = vel_data.twist.linear.x;
+  vel_y = vel_data.twist.linear.x;
 	vel_z = -vel_data.twist.linear.z;
 }
 
@@ -129,16 +131,19 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 	__nh.getParam("/mission_control/rasendriya/camera/principal_point/x", principal_point_x);
 	__nh.getParam("/mission_control/rasendriya/camera/principal_point/y", principal_point_y);
 
-	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, gps_alt);
+	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, alt);
 
-	_X_meter = (x_pixel - principal_point_x*gps_alt)/focal_length_x;
-	_Y_meter = (y_pixel - principal_point_y*gps_alt)/focal_length_y;
+	_X_meter = (x_pixel - principal_point_x*alt)/focal_length_x;
+	_Y_meter = (y_pixel - principal_point_y*alt)/focal_length_y;
 }
 
 // coordinate calculator API
-#define R_earth 6378137 // in meters
+void haversine(double& _tgt_latx, double& _tgt_lony, const double& lat, const double& lon, const float& hdg, const float& r_dist) {
+	_tgt_latx = degrees(asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg)));
+	_tgt_lony = degrees(lon + atan2(sin(hdg)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx))));
+}
 
-void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh) {	
+void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh){	
 	float hdg = radians(gps_hdg);
 	double lat = radians(gps_lat);
 	double lon = radians(gps_long);
@@ -147,14 +152,15 @@ void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_of
 
 	transform_camera(X_meter, Y_meter, _nh);
 
-	r_dist = sqrt(pow(X_meter, 2) + pow(Y_meter + _drop_offset, 2));
-	ROS_INFO("X: %f | Y: %f | Total distance: %f | Heading: %f", X_meter, Y_meter, r_dist, degrees(hdg) );
+	r_dist = sqrt(pow(X_meter, 2) + pow(Y_meter, 2));
+	ROS_INFO("X: %f | Y: %f | Total distance: %f | Heading: %f", X_meter, Y_meter, r_dist, hdg);
 	cam_angle = radians(atan2(X_meter, Y_meter));
 
 	// using haversine law
-	_tgt_latx = degrees(asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos((hdg-radians(180)) + cam_angle)));
-	_tgt_lony = degrees(lon + atan2(sin((hdg-radians(180)) + cam_angle)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth) - sin(lat)*sin(_tgt_latx))));
+	haversine(_tgt_latx, _tgt_lony, lat, lon, hdg+cam_angle, r_dist);
+	haversine(_tgt_latx, _tgt_lony, _tgt_latx, _tgt_lony, radians(degrees(hdg)-180), _drop_offset);
 }
+
 
 // MAIN FUNCTION //
 
@@ -164,7 +170,6 @@ int main(int argc, char **argv) {
 	float dropping_altitude;
 
 	bool vision_started = false;
-	bool scan_completed = false;
 
 	mavros_msgs::WaypointPull waypoint_pull;
 
@@ -242,11 +247,10 @@ int main(int argc, char **argv) {
 		ROS_INFO_ONCE("Mission program ready");		
 		// turn on vision node when wp3 has reached
 		if(!vision_started) {
-			if(waypoint_reached == (wp_prepare_scan - 1)) {
+			if(waypoint_reached == wp_prepare_scan) {
 				vision_flag.request.data = true;
 				if(vision_flag_cli.call(vision_flag)) {
 					ROS_INFO("Starting vision program");
-					ros::Duration(0.5).sleep();
 					vision_started = true;
 				}
 				else {
@@ -255,7 +259,7 @@ int main(int argc, char **argv) {
 			}
 		}
 		else {
-			if( (waypoint_reached == (wp_prepare_scan + 1) ) && vision_flag.request.data) {
+			if( (waypoint_reached == wp_prepare_scan + 1) && vision_flag.request.data) {
 				vision_flag.request.data = false;
 				if(vision_flag_cli.call(vision_flag)) {
 					ROS_INFO("Final scanning waypoint reached. Stopping vision program");
@@ -268,7 +272,7 @@ int main(int argc, char **argv) {
 		}
 		
 		// dropzone confirmed
-		if((x_pixel != -3000) && (y_pixel != -3000) && (scan_completed == false)) {
+		if((x_pixel != -3000) && (y_pixel != -3000)){
 			
 			ROS_INFO("DROPZONE TARGET ACQUIRED. EXECUTING DROPPING SEQUENCE");
 
@@ -279,8 +283,8 @@ int main(int argc, char **argv) {
 			// change WP NAV directly before dropping
 			ROS_INFO("Updating waypoints");
 			for(int i = 0; i <= 1; i++) {
-				waypoint_push.request.waypoints[wp_drop[i]].x_lat = tgt_latx;
-				waypoint_push.request.waypoints[wp_drop[i]].y_long = tgt_lony;
+				waypoint_push.request.waypoints[wp_drop[i]].x_lat = int(tgt_latx * 1e7); // 1e7 is mavlink coordinate integer format
+				waypoint_push.request.waypoints[wp_drop[i]].y_long = int(tgt_lony * 1e7);
 				ROS_INFO("WP: %d | Latitude: %f | Longitude: %f", wp_drop[i], tgt_latx, tgt_lony);
 			}
 
@@ -291,7 +295,7 @@ int main(int argc, char **argv) {
 					ROS_INFO("Stopping vision program. Hibernating");
 					x_pixel = -3000;
 					y_pixel = -3000;
-					scan_completed = true;
+					waypoint_reached =+ 1;
 				}
 				else {
 					ROS_ERROR("Failed to stop vision program, retrying");
