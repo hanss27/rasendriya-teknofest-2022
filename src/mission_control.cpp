@@ -11,6 +11,7 @@
 #include "mavros_msgs/State.h"
 #include "mavros_msgs/StreamRate.h"
 #include "mavros_msgs/Altitude.h"
+#include "geometry_msgs/PoseStamped.h"
 #include "geometry_msgs/TwistStamped.h"
 #include "sensor_msgs/NavSatFix.h"
 #include "std_msgs/Bool.h"
@@ -22,6 +23,7 @@
 //#include <bits/stdc++.h>
 
 #define R_earth 6378137 // in meters
+#define gravity 9.81 // m/s^2
 
 // REMINDER: wp_num STARTS FROM 0
 
@@ -39,40 +41,44 @@ float gps_alt;
 float alt, gps_hdg;
 double gps_long, gps_lat;
 float vel_x, vel_y, vel_z;
+float pos_x, pos_y, pos_z;
 bool mission_flag;
+
+float scan_alt = 18;
 
 mavros_msgs::WaypointPush waypoint_push;
 
-bool dropzone_target_callback(rasendriya::Dropzone::Request& dropzone_req, rasendriya::Dropzone::Response& dropzone_res){
-	x_pixel = dropzone_req.x;
-	y_pixel = dropzone_req.y;
-	dropzone_res.status = true;
+bool dropzone_target_callback(rasendriya::Dropzone::Request& req, rasendriya::Dropzone::Response& res){
+	x_pixel = req.x;
+	y_pixel = req.y;
+	res.status = true;
 	return true;
 }
 
-void gps_callback(const sensor_msgs::NavSatFix& gps_data){
-	gps_long = gps_data.longitude;
-	gps_lat = gps_data.latitude;
-	gps_alt = gps_data.altitude;
+void gps_callback(const sensor_msgs::NavSatFix& data){
+	gps_long = data.longitude;
+	gps_lat = data.latitude;
 }
 
-void alt_callback(const mavros_msgs::Altitude& alt_data){
-	alt = alt_data.relative;
+void gps_hdg_callback(const std_msgs::Float64& data){
+	gps_hdg = data.data;
 }
 
-void gps_hdg_callback(const std_msgs::Float64& gps_hdg_data){
-	gps_hdg = gps_hdg_data.data;
+void local_pose_callback(const geometry_msgs::PoseStamped& data) {
+	pos_x = data.pose.position.x;
+	pos_y = data.pose.position.y;
+	pos_z = data.pose.position.z;
 }
 
-void vel_callback(const geometry_msgs::TwistStamped& vel_data){
+void vel_callback(const geometry_msgs::TwistStamped& data){
 	// ENU | NED conversion
-	vel_x = vel_data.twist.linear.y;
-  vel_y = vel_data.twist.linear.x;
-	vel_z = -vel_data.twist.linear.z;
+	vel_x = data.twist.linear.y;
+  vel_y = data.twist.linear.x;
+	vel_z = -data.twist.linear.z;
 }
 
-void waypoint_list_callback(const mavros_msgs::WaypointList& wplist) {
-	waypoint_push.request.waypoints = wplist.waypoints;
+void waypoint_list_callback(const mavros_msgs::WaypointList& data) {
+	waypoint_push.request.waypoints = data.waypoints;
 }
 
 /*
@@ -114,7 +120,6 @@ double degrees(const double& _rad) {
 }
 
 // projectile motion calculator API
-#define gravity 9.81 // m/s^2
 
 float calc_projectile_distance(const float& _drop_alt) {
 	float _drop_offset = vel_y*sqrt(2*_drop_alt/gravity);
@@ -133,8 +138,8 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 
 	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, gps_alt);
 
-	_X_meter = (x_pixel - principal_point_x*18)/focal_length_x;
-	_Y_meter = (y_pixel - principal_point_y*18)/focal_length_y;
+	_X_meter = (x_pixel - principal_point_x*scan_alt)/focal_length_x;
+	_Y_meter = (y_pixel - principal_point_y*scan_alt)/focal_length_y;
 }
 
 // coordinate calculator API
@@ -193,7 +198,6 @@ int main(int argc, char **argv) {
 	ros::Subscriber waypoint_list_sub = nh.subscribe("/mavros/mission/waypoints", 1, waypoint_list_callback);
 	ros::Subscriber waypoint_reached_sub = nh.subscribe("/mavros/mission/reached", 1, waypoint_reached_callback);
 	ros::Subscriber gps_coordinate_sub = nh.subscribe("/mavros/global_position/global", 1, gps_callback);
-	ros::Subscriber alt_sub = nh.subscribe("/mavros/altitude", 1, alt_callback);
 	ros::Subscriber gps_hdg_sub = nh.subscribe("/mavros/global_position/compass_hdg", 1, gps_hdg_callback);
 	ros::Subscriber vel_sub = nh.subscribe("/mavros/local_position/velocity_body", 1, vel_callback);
 	
@@ -241,6 +245,8 @@ int main(int argc, char **argv) {
 		ros::spinOnce();
 		rate.sleep();
 	}
+
+	scan_alt = waypoint_push.request.waypoints[wp_prepare_scan].z_alt;
 
 	while(ros::ok()) {
 		
