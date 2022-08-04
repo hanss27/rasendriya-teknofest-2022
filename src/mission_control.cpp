@@ -136,34 +136,32 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 	__nh.getParam("/mission_control/rasendriya/camera/principal_point/x", principal_point_x);
 	__nh.getParam("/mission_control/rasendriya/camera/principal_point/y", principal_point_y);
 
-	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, gps_alt);
+	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, pos_z);
 
-	_X_meter = (x_pixel - principal_point_x*scan_alt)/focal_length_x;
-	_Y_meter = (y_pixel - principal_point_y*scan_alt)/focal_length_y;
+	_X_meter = (x_pixel - principal_point_x*pos_z)/focal_length_x;
+	_Y_meter = (y_pixel - principal_point_y*pos_z)/focal_length_y;
 }
 
 // coordinate calculator API
-void haversine(double& _tgt_latx, double& _tgt_lony, const double& lat, const double& lon, const float& hdg, const float& r_dist) {
-	_tgt_latx = degrees(asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg)));
-	_tgt_lony = degrees(lon + atan2(sin(hdg)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx))));
+void haversine(double& _tgt_latx, double& _tgt_lony, const double& lat, const double& lon, const double& hdg, const double& r_dist) {
+	_tgt_latx = asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg));
+	_tgt_lony = lon + atan2(sin(hdg)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx)));
 }
 
-void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh){	
-	float hdg = radians(gps_hdg);
-	double lat = radians(gps_lat);
-	double lon = radians(gps_long);
-	
+void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh){		
 	float X_meter, Y_meter, cam_angle, r_dist;
 
 	transform_camera(X_meter, Y_meter, _nh);
 
 	r_dist = sqrt(pow(X_meter, 2) + pow(Y_meter, 2));
-	ROS_INFO("X: %f | Y: %f | Total distance: %f | Heading: %f", X_meter, Y_meter, r_dist, hdg);
-	cam_angle = radians(atan2(X_meter, Y_meter));
+	ROS_INFO("X: %f | Y: %f | Total distance: %f | Heading: %f", X_meter, Y_meter, r_dist, gps_hdg);
+	cam_angle = atan2(X_meter, Y_meter);
 
 	// using haversine law
-	haversine(_tgt_latx, _tgt_lony, lat, lon, hdg+cam_angle, r_dist);
-	haversine(_tgt_latx, _tgt_lony, _tgt_latx, _tgt_lony, radians(degrees(hdg)-180), _drop_offset);
+	haversine(_tgt_latx, _tgt_lony, radians(gps_lat), radians(gps_long), radians(gps_hdg+cam_angle), r_dist);
+	haversine(_tgt_latx, _tgt_lony, _tgt_latx, _tgt_lony, radians(gps_hdg-180), _drop_offset);
+	_tgt_latx = degrees(_tgt_latx);
+	_tgt_lony = degrees(_tgt_lony);
 }
 
 
@@ -199,6 +197,7 @@ int main(int argc, char **argv) {
 	ros::Subscriber waypoint_reached_sub = nh.subscribe("/mavros/mission/reached", 1, waypoint_reached_callback);
 	ros::Subscriber gps_coordinate_sub = nh.subscribe("/mavros/global_position/global", 1, gps_callback);
 	ros::Subscriber gps_hdg_sub = nh.subscribe("/mavros/global_position/compass_hdg", 1, gps_hdg_callback);
+	ros::Subscriber local_pose_sub = nh.subscribe("/mavros/local_position/pose", 1, local_pose_callback);
 	ros::Subscriber vel_sub = nh.subscribe("/mavros/local_position/velocity_body", 1, vel_callback);
 	
 	ROS_INFO("Loading ROS params");
@@ -255,10 +254,9 @@ int main(int argc, char **argv) {
 		if(!vision_started) {
 			if(waypoint_reached == wp_prepare_scan) {
 				ros::Duration(1).sleep();
-                                vision_flag.request.data = true;
+        vision_flag.request.data = true;
 				if(vision_flag_cli.call(vision_flag)) {
-
-                                        ROS_INFO("Starting vision program");
+          ROS_INFO("Starting vision program");
 					vision_started = true;
 				}
 				else {
