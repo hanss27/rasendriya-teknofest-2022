@@ -248,9 +248,11 @@ int main(int argc, char **argv) {
 		// turn on vision node when wp3 has reached
 		if(!vision_started) {
 			if(waypoint_reached == wp_prepare_scan) {
-				vision_flag.request.data = true;
+				ros::Duration(1).sleep();
+                                vision_flag.request.data = true;
 				if(vision_flag_cli.call(vision_flag)) {
-					ROS_INFO("Starting vision program");
+
+                                        ROS_INFO("Starting vision program");
 					vision_started = true;
 				}
 				else {

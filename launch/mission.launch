@@ -17,7 +17,7 @@
     
     <node name="vision_dropzone" pkg="rasendriya" type="vision_dropzone.py" args="$(arg camera_num)" output="screen"/>
 
-    <!-- <param name="/rasendriya/dropping_altitude" value="15" /> -->
+    <!-- <param name="/rasendriya/dropping_altitude" value="18" /> -->
     
     <node name="mission_control" pkg ="rasendriya" type="mission_control" output="screen">
         <!-- camera pinhole model parameters -->
