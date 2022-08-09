@@ -44,6 +44,7 @@ float vel_x, vel_y, vel_z;
 float pos_x, pos_y, pos_z;
 bool mission_flag;
 
+float stc_hdg;
 float scan_alt = 18;
 
 mavros_msgs::WaypointPush waypoint_push;
@@ -158,8 +159,8 @@ void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_of
 	cam_angle = atan2(X_meter, Y_meter);
 
 	// using haversine law
-	haversine(_tgt_latx, _tgt_lony, radians(gps_lat), radians(gps_long), radians(gps_hdg+cam_angle), r_dist);
-	haversine(_tgt_latx, _tgt_lony, _tgt_latx, _tgt_lony, radians(gps_hdg-180), _drop_offset);
+	haversine(_tgt_latx, _tgt_lony, radians(gps_lat), radians(gps_long), radians(stc_hdg+cam_angle), r_dist);
+	haversine(_tgt_latx, _tgt_lony, _tgt_latx, _tgt_lony, radians(stc_hdg-180), _drop_offset);
 	_tgt_latx = degrees(_tgt_latx);
 	_tgt_lony = degrees(_tgt_lony);
 }
@@ -204,7 +205,9 @@ int main(int argc, char **argv) {
 
 	int loop_rate;
 	ros::param::get("/rasendriya/loop_rate", loop_rate);
-	ROS_INFO("Loop rate used: %d", loop_rate);
+	ros::param::get("/rasendriya/static_heading", stc_hdg);
+        ROS_INFO("Loop rate used: %d", loop_rate);
+        ROS_INFO("Static heading used: %d", stc_hdg);
 
 	ros::Rate rate(loop_rate);
 

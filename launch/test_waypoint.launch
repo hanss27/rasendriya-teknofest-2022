@@ -6,7 +6,7 @@
     <rosparam param="mavros/fcu_url">/dev/ttyACM0:921600</rosparam>
 
     <param name="/rasendriya/loop_rate" value="35" />
-    
+    <param name="/rasendriya/heading" value="110" />
     <node name="test_waypoint" pkg="rasendriya" type="test_waypoint" output="screen"/>
     
 </launch>
