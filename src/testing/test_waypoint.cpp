@@ -205,8 +205,8 @@ int main(int argc, char **argv) {
 	int loop_rate;
 	ros::param::get("/rasendriya/loop_rate", loop_rate);
 	ROS_INFO("Loop rate used: %d", loop_rate);
-    ros::param::get("/rasendriya/heading", stc_hdg);
-	ROS_INFO("Heading used: %d", stc_hdg);
+        ros::param::get("/rasendriya/heading", stc_hdg);
+	ROS_INFO("Heading used: %f", stc_hdg);
 	ros::Rate rate(loop_rate);
 
 	int wp_prepare_scan;
