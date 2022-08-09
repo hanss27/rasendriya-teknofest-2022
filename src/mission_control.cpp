@@ -11,7 +11,6 @@
 #include "mavros_msgs/State.h"
 #include "mavros_msgs/StreamRate.h"
 #include "mavros_msgs/Altitude.h"
-#include "geometry_msgs/PoseStamped.h"
 #include "geometry_msgs/TwistStamped.h"
 #include "sensor_msgs/NavSatFix.h"
 #include "std_msgs/Bool.h"
@@ -21,9 +20,6 @@
 
 #include <math.h>
 //#include <bits/stdc++.h>
-
-#define R_earth 6378137 // in meters
-#define gravity 9.81 // m/s^2
 
 // REMINDER: wp_num STARTS FROM 0
 
@@ -43,7 +39,6 @@ double gps_long, gps_lat;
 float vel_x, vel_y, vel_z;
 float pos_x, pos_y, pos_z;
 bool mission_flag;
-
 float stc_hdg;
 float scan_alt = 18;
 
@@ -159,12 +154,11 @@ void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_of
 	cam_angle = atan2(X_meter, Y_meter);
 
 	// using haversine law
-	haversine(_tgt_latx, _tgt_lony, radians(gps_lat), radians(gps_long), radians(stc_hdg+cam_angle), r_dist);
-	haversine(_tgt_latx, _tgt_lony, _tgt_latx, _tgt_lony, radians(stc_hdg-180), _drop_offset);
+	haversine(_tgt_latx, _tgt_lony, radians(gps_lat), radians(gps_long), radians(gps_hdg+cam_angle), r_dist);
+	haversine(_tgt_latx, _tgt_lony, _tgt_latx, _tgt_lony, radians(gps_hdg-180), _drop_offset);
 	_tgt_latx = degrees(_tgt_latx);
 	_tgt_lony = degrees(_tgt_lony);
 }
-
 
 // MAIN FUNCTION //
 
@@ -197,17 +191,17 @@ int main(int argc, char **argv) {
 	ros::Subscriber waypoint_list_sub = nh.subscribe("/mavros/mission/waypoints", 1, waypoint_list_callback);
 	ros::Subscriber waypoint_reached_sub = nh.subscribe("/mavros/mission/reached", 1, waypoint_reached_callback);
 	ros::Subscriber gps_coordinate_sub = nh.subscribe("/mavros/global_position/global", 1, gps_callback);
+	ros::Subscriber alt_sub = nh.subscribe("/mavros/altitude", 1, alt_callback);
 	ros::Subscriber gps_hdg_sub = nh.subscribe("/mavros/global_position/compass_hdg", 1, gps_hdg_callback);
-	ros::Subscriber local_pose_sub = nh.subscribe("/mavros/local_position/pose", 1, local_pose_callback);
 	ros::Subscriber vel_sub = nh.subscribe("/mavros/local_position/velocity_body", 1, vel_callback);
 	
 	ROS_INFO("Loading ROS params");
 
 	int loop_rate;
 	ros::param::get("/rasendriya/loop_rate", loop_rate);
-	ros::param::get("/rasendriya/static_heading", stc_hdg);
-        ROS_INFO("Loop rate used: %d", loop_rate);
-        ROS_INFO("Static heading used: %d", stc_hdg);
+	ros::param::get("/rasendriya/heading", stc_hdg);
+	ROS_INFO("Loop rate used: %d", loop_rate);
+	ROS_INFO("Heading used: %d", stc_hdg);
 
 	ros::Rate rate(loop_rate);
 
@@ -248,18 +242,15 @@ int main(int argc, char **argv) {
 		rate.sleep();
 	}
 
-	scan_alt = waypoint_push.request.waypoints[wp_prepare_scan].z_alt;
-
 	while(ros::ok()) {
 		
 		ROS_INFO_ONCE("Mission program ready");		
 		// turn on vision node when wp3 has reached
 		if(!vision_started) {
 			if(waypoint_reached == wp_prepare_scan) {
-				ros::Duration(1).sleep();
-        vision_flag.request.data = true;
+				vision_flag.request.data = true;
 				if(vision_flag_cli.call(vision_flag)) {
-          ROS_INFO("Starting vision program");
+					ROS_INFO("Starting vision program");
 					vision_started = true;
 				}
 				else {

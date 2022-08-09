@@ -31,47 +31,50 @@ void waypoint_reached_callback(const mavros_msgs::WaypointReached& wp_reached){
 
 // CALLBACKS //
 
-int stc_hdg;
 float x_pixel = -3000;
 float y_pixel = -3000;
 float gps_alt;
 float alt, gps_hdg;
-double gps_long, gps_lat;
+double gps_long = 106.8275437, gps_lat = -6.4132582;
 float vel_x, vel_y, vel_z;
+float pos_x, pos_y, pos_z;
 bool mission_flag;
+float stc_hdg;
+float scan_alt = 18;
 
 mavros_msgs::WaypointPush waypoint_push;
 
-bool dropzone_target_callback(rasendriya::Dropzone::Request& dropzone_req, rasendriya::Dropzone::Response& dropzone_res){
-	x_pixel = dropzone_req.x;
-	y_pixel = dropzone_req.y;
-	dropzone_res.status = true;
+bool dropzone_target_callback(rasendriya::Dropzone::Request& req, rasendriya::Dropzone::Response& res){
+	x_pixel = req.x;
+	y_pixel = req.y;
+	res.status = true;
 	return true;
 }
 
-void gps_callback(const sensor_msgs::NavSatFix& gps_data){
-	gps_long = gps_data.longitude;
-	gps_lat = gps_data.latitude;
-	gps_alt = gps_data.altitude;
+void gps_callback(const sensor_msgs::NavSatFix& data){
+	gps_long = data.longitude;
+	gps_lat = data.latitude;
 }
 
-void alt_callback(const mavros_msgs::Altitude& alt_data){
-	alt = alt_data.relative;
+void gps_hdg_callback(const std_msgs::Float64& data){
+	gps_hdg = data.data;
 }
 
-void gps_hdg_callback(const std_msgs::Float64& gps_hdg_data){
-	gps_hdg = gps_hdg_data.data;
+void local_pose_callback(const geometry_msgs::PoseStamped& data) {
+	pos_x = data.pose.position.x;
+	pos_y = data.pose.position.y;
+	pos_z = data.pose.position.z;
 }
 
-void vel_callback(const geometry_msgs::TwistStamped& vel_data){
+void vel_callback(const geometry_msgs::TwistStamped& data){
 	// ENU | NED conversion
-	vel_x = vel_data.twist.linear.y;
-  vel_y = vel_data.twist.linear.x;
-	vel_z = -vel_data.twist.linear.z;
+	vel_x = data.twist.linear.y;
+  vel_y = data.twist.linear.x;
+	vel_z = -data.twist.linear.z;
 }
 
-void waypoint_list_callback(const mavros_msgs::WaypointList& wplist) {
-	waypoint_push.request.waypoints = wplist.waypoints;
+void waypoint_list_callback(const mavros_msgs::WaypointList& data) {
+	waypoint_push.request.waypoints = data.waypoints;
 }
 
 /*
@@ -113,7 +116,6 @@ double degrees(const double& _rad) {
 }
 
 // projectile motion calculator API
-#define gravity 9.81 // m/s^2
 
 float calc_projectile_distance(const float& _drop_alt) {
 	float _drop_offset = vel_y*sqrt(2*_drop_alt/gravity);
@@ -130,32 +132,32 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 	__nh.getParam("/mission_control/rasendriya/camera/principal_point/x", principal_point_x);
 	__nh.getParam("/mission_control/rasendriya/camera/principal_point/y", principal_point_y);
 
-	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, alt);
+	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, pos_z);
 
-	_X_meter = (x_pixel - principal_point_x*alt)/focal_length_x;
-	_Y_meter = (y_pixel - principal_point_y*alt)/focal_length_y;
+	_X_meter = (x_pixel - principal_point_x*pos_z)/focal_length_x;
+	_Y_meter = (y_pixel - principal_point_y*pos_z)/focal_length_y;
 }
 
 // coordinate calculator API
-#define R_earth 6378137 // in meters
+void haversine(double& _tgt_latx, double& _tgt_lony, const double& lat, const double& lon, const double& hdg, const double& r_dist) {
+	_tgt_latx = asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg));
+	_tgt_lony = lon + atan2(sin(hdg)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx)));
+}
 
-void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh){	
-	float hdg = radians(stc_hdg - 180);
-	double lat = radians(-6.4132582);  //gps_lat
-	double lon = radians(106.8275437);  //gps_lon
-	
+void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh){		
 	float X_meter, Y_meter, cam_angle, r_dist;
 
 	transform_camera(X_meter, Y_meter, _nh);
 
-	r_dist = sqrt(pow(X_meter, 2) + pow(Y_meter + _drop_offset, 2));
-	ROS_INFO("X: %f | Y: %f | Total distance: %f | Heading: %f", X_meter, Y_meter, r_dist, hdg);
-	cam_angle = radians(atan2(X_meter, Y_meter));
+	r_dist = sqrt(pow(X_meter, 2) + pow(Y_meter, 2));
+	ROS_INFO("X: %f | Y: %f | Total distance: %f | Heading: %f", X_meter, Y_meter, r_dist, stc_hdg);
+	cam_angle = atan2(X_meter, Y_meter);
 
 	// using haversine law
-	_tgt_latx = (asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg+cam_angle)));
-	_tgt_lony = (lon + atan2(sin(hdg+cam_angle)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx))));
-        
+	haversine(_tgt_latx, _tgt_lony, radians(gps_lat), radians(gps_long), radians(stc_hdg+cam_angle), r_dist);
+	haversine(_tgt_latx, _tgt_lony, _tgt_latx, _tgt_lony, radians(stc_hdg-180), _drop_offset);
+	_tgt_latx = degrees(_tgt_latx);
+	_tgt_lony = degrees(_tgt_lony);
 }
 
 // MAIN FUNCTION //
@@ -198,7 +200,7 @@ int main(int argc, char **argv) {
 	int loop_rate;
 	ros::param::get("/rasendriya/loop_rate", loop_rate);
 	ROS_INFO("Loop rate used: %d", loop_rate);
-        ros::param::get("/rasendriya/heading", stc_hdg);
+    ros::param::get("/rasendriya/heading", stc_hdg);
 	ROS_INFO("Heading used: %d", stc_hdg);
 	ros::Rate rate(loop_rate);
 
