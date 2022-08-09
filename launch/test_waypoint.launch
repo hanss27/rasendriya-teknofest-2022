@@ -7,6 +7,17 @@
 
     <param name="/rasendriya/loop_rate" value="35" />
     <param name="/rasendriya/heading" value="110" />
-    <node name="test_waypoint" pkg="rasendriya" type="test_waypoint" output="screen"/>
-    
+    <node name="mission_control" pkg="rasendriya" type="test_waypoint" output="screen">
+        <param name="/rasendriya/camera/focal_length/x" value="334.92037641" />
+        <param name="/rasendriya/camera/focal_length/y" value="339.2902151" />
+        <param name="/rasendriya/camera/principal_point/x" value="96.54226547" />
+        <param name="/rasendriya/camera/principal_point/y" value="86.7182241" />
+        
+        <param name="/rasendriya/wp_drop_first" value="13" />
+        <param name="/rasendriya/wp_drop_second" value="20" />
+        <param name="/rasendriya/wp_prepare_scan" value="6" />
+    </node>
+
+
+           
 </launch>

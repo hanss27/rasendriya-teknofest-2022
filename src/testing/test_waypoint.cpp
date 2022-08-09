@@ -31,6 +31,7 @@ void waypoint_reached_callback(const mavros_msgs::WaypointReached& wp_reached){
 
 // CALLBACKS //
 
+int stc_hdg;
 float x_pixel = -3000;
 float y_pixel = -3000;
 float gps_alt;
@@ -139,9 +140,9 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 #define R_earth 6378137 // in meters
 
 void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh){	
-	float hdg = radians(gps_hdg - 180);
-	double lat = radians(-6.4132582);
-	double lon = radians(106.8275437);
+	float hdg = radians(stc_hdg - 180);
+	double lat = radians(-6.4132582);  //gps_lat
+	double lon = radians(106.8275437);  //gps_lon
 	
 	float X_meter, Y_meter, cam_angle, r_dist;
 
@@ -152,8 +153,9 @@ void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_of
 	cam_angle = radians(atan2(X_meter, Y_meter));
 
 	// using haversine law
-	_tgt_latx = degrees(asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg+cam_angle)));
-	_tgt_lony = degrees(lon + atan2(sin(hdg+cam_angle)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx))));
+	_tgt_latx = (asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg+cam_angle)));
+	_tgt_lony = (lon + atan2(sin(hdg+cam_angle)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx))));
+        
 }
 
 // MAIN FUNCTION //
@@ -196,7 +198,8 @@ int main(int argc, char **argv) {
 	int loop_rate;
 	ros::param::get("/rasendriya/loop_rate", loop_rate);
 	ROS_INFO("Loop rate used: %d", loop_rate);
-
+        ros::param::get("/rasendriya/heading", stc_hdg);
+	ROS_INFO("Heading used: %d", stc_hdg);
 	ros::Rate rate(loop_rate);
 
 	int wp_prepare_scan;
@@ -260,16 +263,16 @@ int main(int argc, char **argv) {
 
 			if(waypoint_push_cli.call(waypoint_push) && waypoint_pull_cli.call(waypoint_pull)){
 				ROS_INFO("Image processed coordinates sent!");
-				vision_flag.request.data = false;
-				if(vision_flag_cli.call(vision_flag)) {
+				//vision_flag.request.data = false;
+				//if(vision_flag_cli.call(vision_flag)) {
 					ROS_INFO("Stopping vision program. Hibernating");
 					x_pixel = -3000;
 					y_pixel = -3000;
 					waypoint_reached =+ 1;
-				}
-				else {
-					ROS_ERROR("Failed to stop vision program, retrying");
-				}
+				//}
+				//else {
+				//	ROS_ERROR("Failed to stop vision program, retrying");
+				//}
 			}
 			else {
 				ROS_WARN("Failed to send image processed coordinates, retrying");
