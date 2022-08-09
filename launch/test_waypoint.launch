@@ -13,9 +13,9 @@
         <param name="/rasendriya/camera/principal_point/x" value="96.54226547" />
         <param name="/rasendriya/camera/principal_point/y" value="86.7182241" />
         
-        <param name="/rasendriya/wp_drop_first" value="13" />
-        <param name="/rasendriya/wp_drop_second" value="20" />
-        <param name="/rasendriya/wp_prepare_scan" value="6" />
+        <param name="/rasendriya/wp_drop_first" value="4" />
+        <param name="/rasendriya/wp_drop_second" value="5" />
+        <param name="/rasendriya/wp_prepare_scan" value="2" />
     </node>
 
 

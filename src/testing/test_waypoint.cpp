@@ -139,8 +139,8 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 
 	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, pos_z);
 
-	_X_meter = (x_pixel - principal_point_x*pos_z)/focal_length_x;
-	_Y_meter = (y_pixel - principal_point_y*pos_z)/focal_length_y;
+	_X_meter = (x_pixel - principal_point_x*18)/focal_length_x;
+	_Y_meter = (y_pixel - principal_point_y*18)/focal_length_y;
 }
 
 // coordinate calculator API
@@ -276,6 +276,7 @@ int main(int argc, char **argv) {
 					x_pixel = -3000;
 					y_pixel = -3000;
 					waypoint_reached =+ 1;
+					break;
 				//}
 				//else {
 				//	ROS_ERROR("Failed to stop vision program, retrying");
