@@ -143,9 +143,9 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 }
 
 // coordinate calculator API
-void haversine(double& _tgt_latx, double& _tgt_lony, const double& lat, const double& lon, const double& hdg, const double& r_dist) {
-	_tgt_latx = asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg));
-	_tgt_lony = lon + atan2(sin(hdg)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx)));
+void haversine(double& __tgt_latx, double& __tgt_lony, const double& lat, const double& lon, const double& hdg, const double& r_dist) {
+	__tgt_latx = asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg));
+	__tgt_lony = lon + atan2(sin(hdg)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(__tgt_latx)));
 }
 
 void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh){		
@@ -163,6 +163,7 @@ void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_of
 	_tgt_latx = degrees(_tgt_latx);
 	_tgt_lony = degrees(_tgt_lony);
 }
+
 
 // MAIN FUNCTION //
 
@@ -287,8 +288,8 @@ int main(int argc, char **argv) {
 			// change WP NAV directly before dropping
 			ROS_INFO("Updating waypoints");
 			for(int i = 0; i <= 1; i++) {
-				waypoint_push.request.waypoints[wp_drop[i]].x_lat = int(tgt_latx * 1e7); // 1e7 is mavlink coordinate integer format
-				waypoint_push.request.waypoints[wp_drop[i]].y_long = int(tgt_lony * 1e7);
+				waypoint_push.request.waypoints[wp_drop[i]].x_lat = float(tgt_latx); ; // 1e7 is mavlink coordinate integer format
+				waypoint_push.request.waypoints[wp_drop[i]].y_long = float(tgt_lony);
 				ROS_INFO("WP: %d | Latitude: %f | Longitude: %f", wp_drop[i], tgt_latx, tgt_lony);
 			}
 

@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
 			// change WP NAV directly before dropping
 			ROS_INFO("Updating waypoints");
 			for(int i = 0; i <= 1; i++) {
-				waypoint_push.request.waypoints[wp_drop[i]].x_lat = float(tgt_latx); // 1e7 is mavlink coordinate integer format
+				waypoint_push.request.waypoints[wp_drop[i]].x_lat = float(tgt_latx); 
 				waypoint_push.request.waypoints[wp_drop[i]].y_long = float(tgt_lony);
 				ROS_INFO("WP: %d | Latitude: %f | Longitude: %f", wp_drop[i], tgt_latx, tgt_lony);
 			}
