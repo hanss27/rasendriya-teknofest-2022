@@ -21,6 +21,10 @@
 #include <math.h>
 //#include <bits/stdc++.h>
 
+#define R_earth 6378137 // in meters
+#define gravity 9.81 // m/s^2
+
+
 // REMINDER: wp_num STARTS FROM 0
 
 int waypoint_reached = 0;

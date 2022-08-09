@@ -21,6 +21,9 @@
 #include <math.h>
 //#include <bits/stdc++.h>
 
+#define R_earth 6378137 // in meters
+#define gravity 9.81 // m/s^2
+
 // REMINDER: wp_num STARTS FROM 0
 
 int waypoint_reached = 0;
@@ -150,12 +153,12 @@ void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_of
 	transform_camera(X_meter, Y_meter, _nh);
 
 	r_dist = sqrt(pow(X_meter, 2) + pow(Y_meter, 2));
-	ROS_INFO("X: %f | Y: %f | Total distance: %f | Heading: %f", X_meter, Y_meter, r_dist, gps_hdg);
+	ROS_INFO("X: %f | Y: %f | Total distance: %f | Heading: %f", X_meter, Y_meter, r_dist, stc_hdg);
 	cam_angle = atan2(X_meter, Y_meter);
 
 	// using haversine law
-	haversine(_tgt_latx, _tgt_lony, radians(gps_lat), radians(gps_long), radians(gps_hdg+cam_angle), r_dist);
-	haversine(_tgt_latx, _tgt_lony, _tgt_latx, _tgt_lony, radians(gps_hdg-180), _drop_offset);
+	haversine(_tgt_latx, _tgt_lony, radians(gps_lat), radians(gps_long), radians(stc_hdg+cam_angle), r_dist);
+	haversine(_tgt_latx, _tgt_lony, _tgt_latx, _tgt_lony, radians(stc_hdg-180), _drop_offset);
 	_tgt_latx = degrees(_tgt_latx);
 	_tgt_lony = degrees(_tgt_lony);
 }
