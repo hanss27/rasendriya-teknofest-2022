@@ -12,6 +12,7 @@
 #include "mavros_msgs/StreamRate.h"
 #include "mavros_msgs/Altitude.h"
 #include "geometry_msgs/TwistStamped.h"
+#include "geometry_msgs/PoseStamped.h"
 #include "sensor_msgs/NavSatFix.h"
 #include "std_msgs/Bool.h"
 #include "std_msgs/Float64.h"
@@ -195,7 +196,7 @@ int main(int argc, char **argv) {
 	ros::Subscriber waypoint_list_sub = nh.subscribe("/mavros/mission/waypoints", 1, waypoint_list_callback);
 	ros::Subscriber waypoint_reached_sub = nh.subscribe("/mavros/mission/reached", 1, waypoint_reached_callback);
 	ros::Subscriber gps_coordinate_sub = nh.subscribe("/mavros/global_position/global", 1, gps_callback);
-	ros::Subscriber alt_sub = nh.subscribe("/mavros/altitude", 1, alt_callback);
+	//ros::Subscriber alt_sub = nh.subscribe("/mavros/altitude", 1, alt_callback);
 	ros::Subscriber gps_hdg_sub = nh.subscribe("/mavros/global_position/compass_hdg", 1, gps_hdg_callback);
 	ros::Subscriber vel_sub = nh.subscribe("/mavros/local_position/velocity_body", 1, vel_callback);
 	
