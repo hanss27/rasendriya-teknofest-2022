@@ -57,8 +57,8 @@ bool dropzone_target_callback(rasendriya::Dropzone::Request& req, rasendriya::Dr
 }
 
 void gps_callback(const sensor_msgs::NavSatFix& data){
-	gps_long = data.longitude;
-	gps_lat = data.latitude;
+	// gps_long = data.longitude;
+	// gps_lat = data.latitude;
 }
 
 void gps_hdg_callback(const std_msgs::Float64& data){
@@ -123,7 +123,7 @@ double degrees(const double& _rad) {
 // projectile motion calculator API
 
 float calc_projectile_distance(const float& _drop_alt) {
-	float _drop_offset = vel_y*sqrt(2*_drop_alt/gravity);
+	float _drop_offset = 5*sqrt(2*_drop_alt/gravity);
 	ROS_INFO("Speed: %f | Height: %f | Drop distance: %f", vel_y, _drop_alt, _drop_offset);
 	return _drop_offset;
 }
@@ -144,9 +144,9 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 }
 
 // coordinate calculator API
-void haversine(double& _tgt_latx, double& _tgt_lony, const double& lat, const double& lon, const double& hdg, const double& r_dist) {
-	_tgt_latx = asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg));
-	_tgt_lony = lon + atan2(sin(hdg)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(_tgt_latx)));
+void haversine(double& __tgt_latx, double& __tgt_lony, const double& lat, const double& lon, const double& hdg, const double& r_dist) {
+	__tgt_latx = asin(sin(lat)*cos(r_dist/R_earth) + cos(lat)*sin(r_dist/R_earth)*cos(hdg));
+	__tgt_lony = lon + atan2(sin(hdg)*sin(r_dist/R_earth)*cos(lat) , (cos(r_dist/R_earth)-sin(lat)*sin(__tgt_latx)));
 }
 
 void calc_drop_coord(double& _tgt_latx, double& _tgt_lony, const float& _drop_offset, ros::NodeHandle& _nh){		
