@@ -8,7 +8,7 @@
 
     <param name="/rasendriya/loop_rate" value="35" />
     <param name="/rasendriya/hit_count_thres" value="7" />
-    <param name="/rasendriya/heading" value="110" />    
+    <param name="/rasendriya/heading" value="347" />    
     <!-- 
     this argument determines the video address of camera (usually /dev/video0).
     You can check by writing v4l2-ctl list-devices in terminal 
