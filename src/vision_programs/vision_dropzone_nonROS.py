@@ -84,11 +84,12 @@ def dropzone_detect():
 
     #img = cv2.imread('6.jpg')
 
-    if args.video_address == -1:
-        cam = VideoStream(usePiCamera=False).start()
-    else:
-        cam = VideoStream(src=args.video_address).start()
-        
+    # if args.video_address == -1:
+    #     cam = VideoStream(usePiCamera=False).start()
+    # else:
+    #     cam = VideoStream(src=args.video_address).start()
+    cam = cv2.VideoCapture("cam.mp4")
+
     time.sleep(2.)
 
     if args.tune_hough:
@@ -103,7 +104,8 @@ def dropzone_detect():
 
     while True:
         # pre process
-        img = cv2.imread("2.jpg")#cam.read() 
+        # img = cv2.imread("2.jpg")#
+        _,img = cam.read() 
         img = imutils.resize(img, width=height)
         img_disp = img.copy()
         blur = cv2.GaussianBlur(img, (7, 7), 0)
