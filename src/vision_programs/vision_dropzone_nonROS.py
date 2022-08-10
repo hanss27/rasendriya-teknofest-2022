@@ -5,9 +5,11 @@ import imutils
 import argparse
 import math
 from imutils.video import VideoStream
+import os
 
 old_cX = None
 old_cY = None
+
 
 '''
 Tuning APIs
@@ -69,6 +71,7 @@ def threshold_trackbar():
 '''
 Main detection function
 '''
+img_num = 0
 def dropzone_detect():
     global old_cX, old_cY
     # camera resolution width and height parameters
@@ -88,7 +91,7 @@ def dropzone_detect():
     #     cam = VideoStream(usePiCamera=False).start()
     # else:
     #     cam = VideoStream(src=args.video_address).start()
-    cam = cv2.VideoCapture("cam.mp4")
+    cam = cv2.VideoCapture("/home/hanssms/cam.mp4")
 
     time.sleep(2.)
 
@@ -122,6 +125,11 @@ def dropzone_detect():
         frame = cv2.inRange(frame, lower, upper)
         frame = cv2.bitwise_and(blur, blur, mask=frame)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        global img_num
+        img_data = "dataset_{}.jpg".format(str(img_num))
+        cv2.imwrite(os.path.join("/home/hanssms/dataset", img_data), img)
+        img_num += 1
+
 
         # circle detection using hough transform
         if args.tune_hough:

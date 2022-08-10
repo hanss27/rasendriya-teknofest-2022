@@ -11,7 +11,7 @@ from std_srvs.srv import SetBool, SetBoolResponse
 vision_flag = False
 vision_flag_old = False
 hit_count_thres = 0
-
+img_num = 0
 # Sending Dropzone Service
 def dropzone_service_client(x,y):
     dropzone_service = rospy.ServiceProxy('/rasendriya/dropzone', Dropzone)
@@ -102,7 +102,10 @@ def dropzone_detect():
             frame = cv2.inRange(frame, lower, upper)
             frame = cv2.bitwise_and(blur, blur, mask=frame)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
+            global img_num
+            img_data = "dataset_{}.jpg".format(str(img_num))
+            cv2.imwrite(os.path.join("/home/ubuntu/dataset", img_data), img)
+            img_num += 1
             # circle detection using hough transform
             circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=131,
                 param1=196, param2=32, #23
