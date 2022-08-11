@@ -87,11 +87,11 @@ def dropzone_detect():
 
     #img = cv2.imread('6.jpg')
 
-    # if args.video_address == -1:
-    #     cam = VideoStream(usePiCamera=False).start()
-    # else:
-    #     cam = VideoStream(src=args.video_address).start()
-    cam = cv2.VideoCapture("/home/hanssms/cam.mp4")
+    if args.video_address == -1:
+        cam = VideoStream(usePiCamera=False).start()
+    else:
+        cam = VideoStream(src=args.video_address).start()
+    # cam = cv2.VideoCapture("/home/hanssms/cam.mp4")
 
     time.sleep(2.)
 
@@ -107,8 +107,7 @@ def dropzone_detect():
 
     while True:
         # pre process
-        # img = cv2.imread("2.jpg")#
-        _,img = cam.read() 
+        img = cam.read() 
         img = imutils.resize(img, width=height)
         img_disp = img.copy()
         blur = cv2.GaussianBlur(img, (5, 5), 0)
@@ -138,8 +137,8 @@ def dropzone_detect():
                 param1=hough_param1, param2=hough_param2,
                 minRadius=hough_minRadius, maxRadius=hough_maxRadius)
         else:
-            circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=44,
-                param1=148, param2=32, #23
+            circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=131,
+                param1=196, param2=32, #23
                 minRadius=0, maxRadius=width)
 
         largest_circle_radius = 0

@@ -34,7 +34,7 @@ def draw(_img, _ctr, _rad, _hit_cnt):
     # circle outline
     cv2.circle(_img, _ctr, _rad, (0,255,0), 3)
 	
-    if (_hit_cnt > 6): # Hit Count
+    if (_hit_cnt > 5): # Hit Count
         cv2.imwrite("/home/ubuntu/detected.jpg", _img)
     else:
         trgt_img = "scan_{}.jpg".format(str(_hit_cnt))
@@ -77,7 +77,7 @@ def dropzone_detect():
     rospy.Service('/rasendriya/vision_flag', SetBool, vision_flag_req)
 
     # set lower and upper hsv threshold in red
-    lower = np.array([0, 0, 178], dtype='uint8')
+    lower = np.array([148, 9, 130], dtype='uint8')
     upper = np.array([179, 255, 255],  dtype='uint8')
 
     while not rospy.is_shutdown():
