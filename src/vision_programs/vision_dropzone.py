@@ -77,7 +77,7 @@ def dropzone_detect():
     rospy.Service('/rasendriya/vision_flag', SetBool, vision_flag_req)
 
     # set lower and upper hsv threshold in red
-    lower = np.array([148, 9, 130], dtype='uint8')
+    lower = np.array([148, 0, 38], dtype='uint8')
     upper = np.array([179, 255, 255],  dtype='uint8')
 
     while not rospy.is_shutdown():
@@ -102,11 +102,14 @@ def dropzone_detect():
             frame = cv2.inRange(frame, lower, upper)
             frame = cv2.bitwise_and(blur, blur, mask=frame)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            
+            # dataset capturing
             global img_num
             if img_num%5 ==0:
                 img_data = "dataset_{}.jpg".format(str(img_num))
                 cv2.imwrite(os.path.join("/home/ubuntu/dataset", img_data), img)
             img_num += 1
+            
             # circle detection using hough transform
             circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=131,
                 param1=196, param2=32, #23

@@ -102,12 +102,13 @@ def dropzone_detect():
         threshold_trackbar()
     else:
         # set lower and upper hsv threshold in red
-        lower = np.array([0, 0, 178], dtype='uint8')
+        lower = np.array([148, 0, 38], dtype='uint8')
         upper = np.array([179, 255, 255],  dtype='uint8')
 
     while True:
         # pre process
-        img = cam.read() 
+        img = cv2.imread("data5.jpg")
+        #img = cam.read() 
         img = imutils.resize(img, width=height)
         img_disp = img.copy()
         blur = cv2.GaussianBlur(img, (5, 5), 0)
@@ -124,11 +125,11 @@ def dropzone_detect():
         frame = cv2.inRange(frame, lower, upper)
         frame = cv2.bitwise_and(blur, blur, mask=frame)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        global img_num
-        if img_num%5 ==0:
-            img_data = "dataset_{}.jpg".format(str(img_num))
-            cv2.imwrite(os.path.join("/home/hanssms/dataset", img_data), img)
-        img_num += 1
+        # global img_num
+        # if img_num%5 ==0:
+        #     img_data = "dataset_{}.jpg".format(str(img_num))
+        #     cv2.imwrite(os.path.join("/home/hanssms/dataset", img_data), img)
+        # img_num += 1
 
 
         # circle detection using hough transform
