@@ -138,8 +138,8 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 
 	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, pos_z);
 
-	_X_meter = (x_pixel - principal_point_x*pos_z)/focal_length_x;
-	_Y_meter = (y_pixel - principal_point_y*pos_z)/focal_length_y;
+	_X_meter = (x_pixel - principal_point_x*20)/focal_length_x;
+	_Y_meter = (y_pixel - principal_point_y*20)/focal_length_y;
 }
 
 // coordinate calculator API
@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
 	ros::param::get("/rasendriya/loop_rate", loop_rate);
 	ros::param::get("/rasendriya/heading", stc_hdg);
 	ROS_INFO("Loop rate used: %d", loop_rate);
-	ROS_INFO("Heading used: %d", stc_hdg);
+	ROS_INFO("Heading used: %f", stc_hdg);
 
 	ros::Rate rate(loop_rate);
 

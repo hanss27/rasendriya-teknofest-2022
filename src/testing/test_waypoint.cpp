@@ -40,7 +40,7 @@ float x_pixel = -3000;
 float y_pixel = -3000;
 float gps_alt;
 float alt, gps_hdg;
-double gps_long = 106.8275437, gps_lat = -6.4132582;
+double gps_long = 30.4833108, gps_lat = 38.7898381;
 float vel_x, vel_y, vel_z;
 float pos_x, pos_y, pos_z;
 bool mission_flag;
@@ -123,7 +123,7 @@ double degrees(const double& _rad) {
 // projectile motion calculator API
 
 float calc_projectile_distance(const float& _drop_alt) {
-	float _drop_offset = 5*sqrt(2*_drop_alt/gravity);
+	float _drop_offset = 10*sqrt(2*_drop_alt/gravity);
 	ROS_INFO("Speed: %f | Height: %f | Drop distance: %f", vel_y, _drop_alt, _drop_offset);
 	return _drop_offset;
 }
@@ -139,8 +139,8 @@ void transform_camera(float& _X_meter, float& _Y_meter, ros::NodeHandle& __nh) {
 
 	ROS_INFO("X camera: %f | Y camera: %f | Altitude: %f", x_pixel, y_pixel, pos_z);
 
-	_X_meter = (x_pixel - principal_point_x*18)/focal_length_x;
-	_Y_meter = (y_pixel - principal_point_y*18)/focal_length_y;
+	_X_meter = (x_pixel - principal_point_x*20)/focal_length_x;
+	_Y_meter = (y_pixel - principal_point_y*20)/focal_length_y;
 }
 
 // coordinate calculator API
@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
 			dropping_altitude = waypoint_push.request.waypoints[wp_drop[0]].z_alt;
 
 			calc_drop_coord(tgt_latx, tgt_lony, calc_projectile_distance(dropping_altitude), nh);
-			
+			ROS_INFO("tgt_latx : %f, tgt_laty : %f", tgt_latx, tgt_lony);
 			// change WP NAV directly before dropping
 			ROS_INFO("Updating waypoints");
 			for(int i = 0; i <= 1; i++) {
