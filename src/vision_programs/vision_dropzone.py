@@ -103,8 +103,9 @@ def dropzone_detect():
             frame = cv2.bitwise_and(blur, blur, mask=frame)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             global img_num
-            img_data = "dataset_{}.jpg".format(str(img_num))
-            cv2.imwrite(os.path.join("/home/ubuntu/dataset", img_data), img)
+            if img_num%5 ==0:
+                img_data = "dataset_{}.jpg".format(str(img_num))
+                cv2.imwrite(os.path.join("/home/ubuntu/dataset", img_data), img)
             img_num += 1
             # circle detection using hough transform
             circles = cv2.HoughCircles(frame, method=cv2.HOUGH_GRADIENT, dp=1.5, minDist=131,
@@ -139,7 +140,7 @@ def dropzone_detect():
                 #rospy.loginfo("x: {}".format(x))
                 #rospy.loginfo("y: {}".format(y))
 
-                if (hit_count > 6):
+                if (hit_count > 5):
                     draw(img, center, radius, hit_count)
                     dropzone_service_client(x,y)
                     vision_flag = False
