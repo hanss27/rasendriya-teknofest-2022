@@ -102,8 +102,8 @@ def dropzone_detect():
         threshold_trackbar()
     else:
         # set lower and upper hsv threshold in red
-        lower = np.array([148, 0, 38], dtype='uint8')
-        upper = np.array([179, 255, 255],  dtype='uint8')
+        lower = np.array([44, 21, 68], dtype='uint8')
+        upper = np.array([179, 255, 154],  dtype='uint8')
 
     while True:
         # pre process

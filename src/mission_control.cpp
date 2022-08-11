@@ -44,7 +44,7 @@ float vel_x, vel_y, vel_z;
 float pos_x, pos_y, pos_z;
 bool mission_flag;
 float stc_hdg;
-float scan_alt = 18;
+float scan_alt = 20;
 
 mavros_msgs::WaypointPush waypoint_push;
 
