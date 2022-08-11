@@ -123,6 +123,7 @@ double degrees(const double& _rad) {
 
 float calc_projectile_distance(const float& _drop_alt) {
 	float _drop_offset = vel_y*sqrt(2*_drop_alt/gravity);
+	_drop_offset += 8;
 	ROS_INFO("Speed: %f | Height: %f | Drop distance: %f", vel_y, _drop_alt, _drop_offset);
 	return _drop_offset;
 }

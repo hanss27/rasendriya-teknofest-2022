@@ -40,7 +40,7 @@ float x_pixel = -3000;
 float y_pixel = -3000;
 float gps_alt;
 float alt, gps_hdg;
-double gps_long = 30.4833108, gps_lat = 38.7898381;
+double gps_long = 30.4832545, gps_lat = 38.7900116;
 float vel_x, vel_y, vel_z;
 float pos_x, pos_y, pos_z;
 bool mission_flag;
@@ -123,7 +123,8 @@ double degrees(const double& _rad) {
 // projectile motion calculator API
 
 float calc_projectile_distance(const float& _drop_alt) {
-	float _drop_offset = 10*sqrt(2*_drop_alt/gravity);
+	float _drop_offset = 19*sqrt(2*_drop_alt/gravity);
+	_drop_offset += 8;
 	ROS_INFO("Speed: %f | Height: %f | Drop distance: %f", vel_y, _drop_alt, _drop_offset);
 	return _drop_offset;
 }

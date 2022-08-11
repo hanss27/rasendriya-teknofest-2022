@@ -6,7 +6,7 @@
     <rosparam param="mavros/fcu_url">/dev/ttyACM0:921600</rosparam>
 
     <param name="/rasendriya/loop_rate" value="35" />
-    <param name="/rasendriya/heading" value="347" />
+    <param name="/rasendriya/heading" value="346" />
     <node name="mission_control" pkg="rasendriya" type="test_waypoint" output="screen">
         <param name="/rasendriya/camera/focal_length/x" value="334.92037641" />
         <param name="/rasendriya/camera/focal_length/y" value="339.2902151" />
