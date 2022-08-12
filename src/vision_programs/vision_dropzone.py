@@ -34,7 +34,7 @@ def draw(_img, _ctr, _rad, _hit_cnt):
     # circle outline
     cv2.circle(_img, _ctr, _rad, (0,255,0), 3)
 	
-    if (_hit_cnt > 5): # Hit Count
+    if (_hit_cnt > 4): # Hit Count
         cv2.imwrite("/home/ubuntu/detected.jpg", _img)
     else:
         trgt_img = "scan_{}.jpg".format(str(_hit_cnt))
@@ -143,7 +143,7 @@ def dropzone_detect():
                 #rospy.loginfo("x: {}".format(x))
                 #rospy.loginfo("y: {}".format(y))
 
-                if (hit_count > 5):
+                if (hit_count > 4):
                     draw(img, center, radius, hit_count)
                     dropzone_service_client(x,y)
                     vision_flag = False
